@@ -1,4 +1,4 @@
-data/
+*.csv
 
 # gitignore template for Jupyter Notebooks
 # website: http://jupyter.org/
