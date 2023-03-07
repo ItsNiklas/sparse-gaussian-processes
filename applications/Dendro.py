@@ -1,5 +1,11 @@
 #!/usr/bin/env python
 # coding: utf-8
+
+X_TEST_SIZE: int = 1000
+X_TRAIN_SIZE: int = 30
+WENDLAND_LIMIT: float = 8
+N_TREES: int = 25
+
 import sys
 
 import jax.numpy as jnp
@@ -42,6 +48,7 @@ for tree in tqdm(dendro.dendroNr.unique()):
     res = solver.run(
         jnp.array([max(y_), 1 / (0.632 * max(y_)), 3]),
         jnp.array([(0.1, 0.00001, 1), (100000, 1, 100)]),
+
     )
     weibull = lambda x__: res.params[0] * weibull_F(x__.ravel(), res.params[1], res.params[2])
 
@@ -56,14 +63,14 @@ if "full" in sys.argv:
 
     rng = np.random.default_rng()
 
-    X_test = np.linspace(0, dendro.DOY.max(), 500).reshape(-1, 1)
+    X_test = np.linspace(0, dendro.DOY.max(), X_TEST_SIZE).reshape(-1, 1)
 
     c = lambda s: 0 if s == "Beech" else (3 if s == "Sycamore" else 1)
 
-    for tree in tqdm(dendro.dendroNr.unique()[:25]):
+    for tree in tqdm(dendro.dendroNr.unique()[:N_TREES]):
         df_ = dendro.loc[dendro.dendroNr.eq(tree)]
 
-        idx_train = np.sort(rng.integers(0, len(df_.DOY) - 1, 30))
+        idx_train = np.sort(rng.integers(0, len(df_.DOY) - 1, X_TRAIN_SIZE))
 
         X_train = df_.DOY.iloc[idx_train].array.reshape(-1, 1)
         y_train = df_.deltagrowth.iloc[idx_train]
@@ -119,15 +126,17 @@ else:
 
     # plt.figure(figsize=(16, 7))
 
-    X_test = jnp.linspace(0, dendro.DOY.max(), 500).reshape(-1, 1)
+    X_test = jnp.linspace(0, dendro.DOY.max(), X_TEST_SIZE).reshape(-1, 1)
 
     c = lambda s: 0 if s == "Beech" else (3 if s == "Sycamore" else 1)
 
-    for tree in tqdm(dendro.dendroNr.unique()[:25]):
+    for tree in tqdm(dendro.dendroNr.unique()[:N_TREES]):
         df_ = dendro.loc[dendro.dendroNr.eq(tree)]
 
         # idx_train = jnp.sort(rng.integers(0, len(df_.DOY) - 1, 30))
-        idx_train = jnp.sort(jax.random.randint(jax.random.PRNGKey(0), (30,), 0, len(df_.DOY) - 1))
+        idx_train = jnp.sort(
+            jax.random.randint(jax.random.PRNGKey(0), (X_TRAIN_SIZE,), 0, len(df_.DOY) - 1)
+        )
         X_train = jnp.array(df_.DOY.iloc[idx_train].array).reshape(-1, 1)
         y_train = jnp.array(df_.deltagrowth.iloc[idx_train].array)
 
@@ -140,7 +149,7 @@ else:
         # )
         def kernel_(s, l, x, y):
             # 37**2 * Matern(length_scale=3, length_scale_bounds=(2,16), nu = 2.5) + WhiteKernel(noise_level=.01, noise_level_bounds="fixed")
-            return MaternKernel32(s, l, x, y) * WendlandTapering(3, 8, x, y)
+            return MaternKernel32(s, l, x, y) * WendlandTapering(3, WENDLAND_LIMIT, x, y)
 
         gp_model = GPR(X_train, y_train, kernel_, jnp.array([37**2, 3]), eps=0.01)
         # gp_model.fit(X_train, y_train)

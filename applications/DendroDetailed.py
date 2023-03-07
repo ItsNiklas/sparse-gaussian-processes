@@ -1,5 +1,11 @@
 #!/usr/bin/env python
 # coding: utf-8
+
+X_TEST_SIZE: int = 1000
+X_TRAIN_SIZE: int = 30
+WENDLAND_LIMIT: float = 8 * 24
+N_TREES: int = 25
+
 import sys
 
 import jax.numpy as jnp
@@ -13,8 +19,10 @@ from tqdm import tqdm
 
 dendro = pd.read_feather("../data/17766_12_D.feather")
 
+
 def weibull_F(x, lambda_, k_):
     return 1 - jnp.exp(-((lambda_ * x) ** k_))
+
 
 # # Fit models
 
@@ -47,13 +55,13 @@ for tree in tqdm(dendro.dendroNr.unique()):
 if "full" in sys.argv:
     rng = np.random.default_rng()
 
-    X_test = np.linspace(0, dendro.DOY.max(), 6000).reshape(-1, 1)
+    X_test = np.linspace(0, dendro.DOY.max(), X_TEST_SIZE).reshape(-1, 1)
 
     c = lambda s: 0 if s == "Beech" else (3 if s == "Sycamore" else 1)
-    for tree in tqdm(dendro.dendroNr.unique().tolist()[2:5]):
+    for tree in tqdm(dendro.dendroNr.unique().tolist()[:N_TREES]):
         df_ = dendro.loc[dendro.dendroNr.eq(tree)]
 
-        idx_train = np.sort(rng.integers(0, len(df_.DOY) - 1, 1000))
+        idx_train = np.sort(rng.integers(0, len(df_.DOY) - 1, X_TRAIN_SIZE))
 
         X_train = df_.DOY.iloc[idx_train].array.reshape(-1, 1)
         y_train = df_.deltagrowth.iloc[idx_train]
@@ -113,14 +121,14 @@ else:
 
     # plt.figure(figsize=(18, 8))
 
-    X_test = jnp.linspace(0, dendro.DOY.max(), 6000).reshape(-1, 1)
+    X_test = jnp.linspace(0, dendro.DOY.max(), X_TEST_SIZE).reshape(-1, 1)
 
     c = lambda s: 0 if s == "Beech" else (3 if s == "Sycamore" else 1)
-    for tree in tqdm(dendro.dendroNr.unique().tolist()[2:5]):
+    for tree in tqdm(dendro.dendroNr.unique().tolist()[:N_TREES]):
         df_ = dendro.loc[dendro.dendroNr.eq(tree)]
 
         idx_train = jnp.sort(
-            jax.random.randint(jax.random.PRNGKey(0), (1000,), 0, len(df_.DOY) - 1)
+            jax.random.randint(jax.random.PRNGKey(0), (X_TRAIN_SIZE,), 0, len(df_.DOY) - 1)
         )
         X_train = jnp.array(df_.DOY.iloc[idx_train].array).reshape(-1, 1)
         y_train = jnp.array(df_.deltagrowth.iloc[idx_train].array)
@@ -137,7 +145,7 @@ else:
             # 37**2 * Matern(length_scale=3, length_scale_bounds=(2,16), nu = 2.5) + WhiteKernel(noise_level=.01, noise_level_bounds="fixed")
             return (
                 MaternKernel32(65.3**2, 25, x, y) + ExpSineSquaredKernel(0.4**2, 0.1, 48, x, y)
-            ) * WendlandTapering(3, 8 * 24, x, y)
+            ) * WendlandTapering(3, WENDLAND_LIMIT, x, y)
 
         gp_model = GPR(X_train, y_train, kernel_, jnp.empty(0), eps=0.1)
 

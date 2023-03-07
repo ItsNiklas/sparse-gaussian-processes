@@ -1,6 +1,10 @@
 #!/usr/bin/env python
 # coding: utf-8
 
+X_TEST_SIZE: int = 1000
+NEW_DATA: bool = True
+WENDLAND_LIMIT: float = 8
+
 import datetime
 import sys
 
@@ -8,21 +12,22 @@ import pandas as pd
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import *
 
-# co2 = fetch_openml(data_id=41187, as_frame=True, parser="pandas")
-# co2_data = co2.frame
-# co2_data["date"] = pd.to_datetime(co2_data[["year", "month", "day"]])
-# co2_data = co2_data[["date", "co2"]].set_index("date")
-# co2_data = co2_data.resample("M").mean().dropna(axis="index", how="any")
-# X = (co2_data.index.year + co2_data.index.month / 12).to_numpy().reshape(-1, 1)
-# y = co2_data["co2"].to_numpy()
-
 # Read data
-df_ = pd.read_csv(r"../data/co2_mm_mlo.csv", skiprows=56)
-X = df_["decimal date"].to_numpy().reshape(-1, 1)
-y = df_.average.to_numpy()
+if not NEW_DATA:
+    co2 = fetch_openml(data_id=41187, as_frame=True, parser="pandas")
+    co2_data = co2.frame
+    co2_data["date"] = pd.to_datetime(co2_data[["year", "month", "day"]])
+    co2_data = co2_data[["date", "co2"]].set_index("date")
+    co2_data = co2_data.resample("M").mean().dropna(axis="index", how="any")
+    X = (co2_data.index.year + co2_data.index.month / 12).to_numpy().reshape(-1, 1)
+    y = co2_data["co2"].to_numpy()
+else:
+    df_ = pd.read_csv(r"../data/co2_mm_mlo.csv", skiprows=56)
+    X = df_["decimal date"].to_numpy().reshape(-1, 1)
+    y = df_.average.to_numpy()
 
 today = datetime.datetime.now()
-current_month = today.year + 50 + today.month / 12
+current_month = today.year + 30 + today.month / 12
 
 if "full" in sys.argv:
     # Set up GPR
@@ -41,7 +46,7 @@ if "full" in sys.argv:
 
     # plt.figure(figsize=(12, 5))
 
-    X_test = np.linspace(start=1958, stop=current_month, num=1000).reshape(-1, 1)
+    X_test = np.linspace(start=1958, stop=current_month, num=X_TEST_SIZE).reshape(-1, 1)
 
     # y_samples = gpr.sample_y(X_test, 5)
 
@@ -82,7 +87,7 @@ else:
             + MaternKernel52(2.58**2, 199, x_, y_) * ExpSineSquaredKernel(1, 1.36, 1, x_, y_)
             + RationalQuadraticKernel(0.575**2, 1.05, 0.672, x_, y_)
             + MaternKernel52(0.208**2, 0.128, x_, y_)
-        )  # * WendlandTapering(3, 1, x_, y_)
+        ) * WendlandTapering(3, WENDLAND_LIMIT, x_, y_)
 
     y_mean = y.mean()
     gpr = GPR(
@@ -96,7 +101,7 @@ else:
 
     # plt.figure(figsize=(12, 5))
 
-    X_test = jnp.linspace(start=1958, stop=current_month, num=1_000).reshape(-1, 1)
+    X_test = jnp.linspace(start=1958, stop=current_month, num=X_TEST_SIZE).reshape(-1, 1)
     mean_y_pred = gpr.predict(X_test, return_std=False)
     mean_y_pred += y_mean
     # plt.plot(X, y, color="black", linestyle="dashed", label="Measurements")
