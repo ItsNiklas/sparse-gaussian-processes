@@ -25,32 +25,34 @@ def weibull_F(x, lambda_, k_):
 
 
 # # Fit models
-
-dendro["deltagrowth"] = np.nan
-weibull_params = dict()
-
-for tree in tqdm(dendro.dendroNr.unique()):
-    df_ = dendro[dendro.dendroNr.eq(tree)]
-    y_ = jnp.array(df_.growth)
-    x_ = jnp.array(df_.DOY)
-
-    def f_(params):
-        p0, p1, p2 = params
-        return jnp.mean((y_ - (p0 * weibull_F(x_, p1, p2))) ** 2)  # MSE Loss
-        # return jnp.mean(
-        #     jax.vmap(jax.tree_util.Partial(jaxopt.loss.huber_loss, delta = 10.))
-        #     (y_, p0 * weibull_F(x_, p1, p2)) # Huber Loss
-        # )
-
-    solver = jaxopt.ScipyBoundedMinimize(fun=f_)
-    res = solver.run(
-        jnp.array([max(y_), 1 / (0.632 * max(y_)), 3]),
-        jnp.array([(0.1, 0.000001, 1), (100000, 1, 100)]),
-    )
-    weibull = lambda x__: res.params[0] * weibull_F(x__.ravel(), res.params[1], res.params[2])
-
-    dendro.loc[dendro["dendroNr"] == tree, "deltagrowth"] = y_ - weibull(x_)
-    weibull_params[tree] = res.params
+#
+# dendro["deltagrowth"] = np.nan
+# #weibull_params = dict()
+#
+# for tree in tqdm(dendro.dendroNr.unique()):
+#     df_ = dendro[dendro.dendroNr.eq(tree)]
+#     y_ = jnp.array(df_.growth)
+#     x_ = jnp.array(df_.DOY)
+#
+#     def f_(params):
+#         p0, p1, p2 = params
+#         return jnp.mean((y_ - (p0 * weibull_F(x_, p1, p2))) ** 2)  # MSE Loss
+#         # return jnp.mean(
+#         #     jax.vmap(jax.tree_util.Partial(jaxopt.loss.huber_loss, delta = 10.))
+#         #     (y_, p0 * weibull_F(x_, p1, p2)) # Huber Loss
+#         # )
+#
+#     solver = jaxopt.ScipyBoundedMinimize(fun=f_)
+#     res = solver.run(
+#         jnp.array([max(y_), 1 / (0.632 * max(y_)), 3]),
+#         jnp.array([(0.1, 0.000001, 1), (100000, 1, 100)]),
+#     )
+#     weibull = lambda x__: res.params[0] * weibull_F(x__.ravel(), res.params[1], res.params[2])
+#
+#     dendro.loc[dendro["dendroNr"] == tree, "deltagrowth"] = y_ - weibull(x_)
+#     #weibull_params[tree] = res.params
+#
+# dendro.to_feather(r'../data/17766_12_D.feather')
 
 if "full" in sys.argv:
     rng = np.random.default_rng()
@@ -79,7 +81,6 @@ if "full" in sys.argv:
         )
 
         gp_model.fit(X_train, y_train)
-        print(gp_model.kernel_)
         mean_pred, std_pred = gp_model.predict(X_test, True)
 
         # y_samples = gp_model.sample_y(X_test, 1)
@@ -87,6 +88,8 @@ if "full" in sys.argv:
         weibull_pred = weibull_params[tree][0] * weibull_F(
             X_test.ravel(), *weibull_params[tree][1:3]
         )
+
+        print(gp_model.log_marginal_likelihood_value_)
 
         # plt.plot(X_test, mean_pred + weibull_pred, lw=1, zorder=10, alpha = .7, color=sns.color_palette()[c(df_.species.iloc[0])])
         #

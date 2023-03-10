@@ -28,35 +28,37 @@ dendro = pd.read_feather("../data/17766_12.feather")
 # # Fit models
 # dendro_spcs = dendro[dendro.species.eq("Beech")]
 
-dendro["deltagrowth"] = np.nan
-weibull_params = dict()
-
-for tree in tqdm(dendro.dendroNr.unique()):
-    df_ = dendro[dendro.dendroNr.eq(tree)]
-    y_ = jnp.array(df_.growth)
-    x_ = jnp.array(df_.DOY)
-
-    def f_(params):
-        p0, p1, p2 = params
-        return jnp.mean((y_ - (p0 * weibull_F(x_, p1, p2))) ** 2)  # MSE Loss
-        # return jnp.mean(
-        #     jax.vmap(jax.tree_util.Partial(jaxopt.loss.huber_loss, delta = 10.))
-        #     (y_, p0 * weibull_F(x_, p1, p2)) # Huber Loss
-        # )
-
-    solver = jaxopt.ScipyBoundedMinimize(fun=f_)
-    res = solver.run(
-        jnp.array([max(y_), 1 / (0.632 * max(y_)), 3]),
-        jnp.array([(0.1, 0.00001, 1), (100000, 1, 100)]),
-
-    )
-    weibull = lambda x__: res.params[0] * weibull_F(x__.ravel(), res.params[1], res.params[2])
-
-    # with np.printoptions(precision=3, suppress=True, threshold=5, floatmode="fixed"):
-    #     print(tree, res.params, res.state.fun_val, res.state.status, res.state.iter_num, sep = '\t')
-
-    dendro.loc[dendro["dendroNr"] == tree, "deltagrowth"] = y_ - weibull(x_)
-    weibull_params[tree] = res.params
+# dendro["deltagrowth"] = np.nan
+#
+# for tree in tqdm(dendro.dendroNr.unique()):
+#     df_ = dendro[dendro.dendroNr.eq(tree)]
+#     y_ = jnp.array(df_.growth)
+#     x_ = jnp.array(df_.DOY)
+#
+#     def f_(params):
+#         p0, p1, p2 = params
+#         return jnp.mean((y_ - (p0 * weibull_F(x_, p1, p2))) ** 2)  # MSE Loss
+#         # return jnp.mean(
+#         #     jax.vmap(jax.tree_util.Partial(jaxopt.loss.huber_loss, delta = 10.))
+#         #     (y_, p0 * weibull_F(x_, p1, p2)) # Huber Loss
+#         # )
+#
+#     solver = jaxopt.ScipyBoundedMinimize(fun=f_)
+#     res = solver.run(
+#         jnp.array([max(y_), 1 / (0.632 * max(y_)), 3]),
+#         jnp.array([(0.1, 0.00001, 1), (100000, 1, 100)]),
+#
+#     )
+#     weibull = lambda x__: res.params[0] * weibull_F(x__.ravel(), res.params[1], res.params[2])
+#
+#     # with np.printoptions(precision=3, suppress=True, threshold=5, floatmode="fixed"):
+#     #     print(tree, res.params, res.state.fun_val, res.state.status, res.state.iter_num, sep = '\t')
+#
+#     dendro.loc[dendro["dendroNr"] == tree, "deltagrowth"] = y_ - weibull(x_)
+#     #dendro.loc[dendro["dendroNr"] == tree, "weibull_params"] = res.params
+#
+#
+# dendro.to_feather(r'../data/17766_12.feather')
 
 if "full" in sys.argv:
     # plt.figure(figsize=(16, 7))
@@ -89,9 +91,9 @@ if "full" in sys.argv:
         mean_pred, std_pred = gp_model.predict(X_test, True)
         # y_samples = gp_model.sample_y(X_test, 1)
 
-        weibull_pred = weibull_params[tree][0] * weibull_F(
-            X_test.ravel(), *weibull_params[tree][1:3]
-        )
+        # weibull_pred = weibull_params[tree][0] * weibull_F(
+        #     X_test.ravel(), *weibull_params[tree][1:3]
+        # )
 
         print(gp_model.log_marginal_likelihood_value_)
 
@@ -155,9 +157,9 @@ else:
         # gp_model.fit(X_train, y_train)
         mean_pred = gp_model.predict(X_test, False)
 
-        weibull_pred = weibull_params[tree][0] * weibull_F(
-            X_test.ravel(), *weibull_params[tree][1:3]
-        )
+        # weibull_pred = weibull_params[tree][0] * weibull_F(
+        #     X_test.ravel(), *weibull_params[tree][1:3]
+        # )
 
         # plt.plot(X_test, mean_pred + weibull_pred, lw=1, zorder=10, alpha = .7, c=sns.color_palette()[c(df_.species.iloc[0])])
 
