@@ -3,6 +3,8 @@ import jax.numpy as jnp
 from jax.tree_util import Partial
 from liesel_sparse import band
 
+import functools
+
 jax.config.update("jax_enable_x64", True)
 
 
@@ -78,13 +80,13 @@ def WendlandTapering(k_, theta, x, y):
 
 ### Implementation
 
-
+@jax.jit
 def cov_matrix(x1, x2, cov_function):
     # Returns the symmetric kernel matrix K.
     return jax.vmap(lambda x_: jax.vmap(lambda y_: cov_function(x_, y_))(x1))(x2)
 
 
-# @jax.jit(jax.jit, static_argnames=["p"])
+@functools.partial(jax.jit, static_argnames=["p"])
 def log_likelihood(kernel_, params, data_x, data_y, eps, p):
     # Compute the negative marginal log likelihood.
     K_ = cov_matrix(data_x, data_x, Partial(kernel_, *params))
@@ -97,7 +99,7 @@ def log_likelihood(kernel_, params, data_x, data_y, eps, p):
     )
 
 
-# @functools.partial(jax.jit, static_argnames=["p"])
+@functools.partial(jax.jit, static_argnames=["p"])
 def inv_cov_chol(K, data_y, eps, p):
     # Get Kernel.
     # TAPERING V1
@@ -128,8 +130,8 @@ def inv_cov_chol(K, data_y, eps, p):
     # jax.debug.print(str(Kpb.shape[0]) + "/" + str(K.shape[0]))
 
     # Solve
-    Lb = jax.jit(band.cholesky_band)(Kpb)
-    alpha = jax.jit(band.solve_band)(Lb, data_y)
+    Lb = band.cholesky_band(Kpb)
+    alpha = band.solve_band(Lb, data_y)
 
     return Lb, alpha
 
@@ -161,12 +163,12 @@ class GPR:
             )
 
         K_trans = cov_matrix(self.data_x, at_values, self.covariance_function)
-        y_mean = K_trans @ self.alpha_
-        print("NMLL:", -(
-                -0.5 * jnp.dot(self.data_y, self.alpha_)
-                - (jnp.log(self.Lb_[0])).sum()
-                - 0.5 * self.alpha_.shape[0] * jnp.log(2 * jnp.pi)
-        ))
+        y_mean = jnp.dot(K_trans, self.alpha_)
+        # print("NMLL:", -(
+        #         -0.5 * jnp.dot(self.data_y, self.alpha_)
+        #         - (jnp.log(self.Lb_[0])).sum()
+        #         - 0.5 * self.alpha_.shape[0] * jnp.log(2 * jnp.pi)
+        # ))
 
         if return_std:
             V = jax.scipy.linalg.solve_triangular(band.to_ltri_full(self.Lb_), K_trans.T, lower=True)
