@@ -158,17 +158,18 @@ class GPR:
             # Compute values needed for prediction after fit.
             self.K_ = cov_matrix(self.data_x, self.data_x, self.covariance_function)
             bw = int(band.bandwidth(self.K_))
+            print(f"{bw=}")
             self.Lb_, self.alpha_ = inv_cov_chol(
                 self.K_, self.data_y, self.eps, p=bw
             )
 
         K_trans = cov_matrix(self.data_x, at_values, self.covariance_function)
         y_mean = jnp.dot(K_trans, self.alpha_)
-        # print("NMLL:", -(
-        #         -0.5 * jnp.dot(self.data_y, self.alpha_)
-        #         - (jnp.log(self.Lb_[0])).sum()
-        #         - 0.5 * self.alpha_.shape[0] * jnp.log(2 * jnp.pi)
-        # ))
+        print("NMLL:", -(
+                -0.5 * jnp.dot(self.data_y, self.alpha_)
+                - (jnp.log(self.Lb_[0])).sum()
+                - 0.5 * self.alpha_.shape[0] * jnp.log(2 * jnp.pi)
+        ))
 
         if return_std:
             V = jax.scipy.linalg.solve_triangular(band.to_ltri_full(self.Lb_), K_trans.T, lower=True)

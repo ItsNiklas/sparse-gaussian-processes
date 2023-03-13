@@ -1,0 +1,153 @@
+No GPU/TPU found, falling back to CPU. (Set TF_CPP_MIN_LOG_LEVEL=0 and rerun for more info.)
+---------Benchmark results for MaunaLoa.py MODE=sparse WENDLAND_LIMIT=1---------
+mean=0.29s std=0.04s %%std=12.48 total=180.1s
+#iters=613 #warmup=1
+
+---------Benchmark results for MaunaLoa.py MODE=sparse WENDLAND_LIMIT=2---------
+mean=0.32s std=0.06s %%std=19.42 total=180.3s
+#iters=564 #warmup=1
+
+---------Benchmark results for MaunaLoa.py MODE=sparse WENDLAND_LIMIT=3---------
+mean=0.34s std=0.09s %%std=25.69 total=180.3s
+#iters=530 #warmup=1
+
+---------Benchmark results for MaunaLoa.py MODE=sparse WENDLAND_LIMIT=4---------
+mean=0.36s std=0.12s %%std=34.08 total=180.3s
+#iters=496 #warmup=1
+
+---------Benchmark results for MaunaLoa.py MODE=sparse WENDLAND_LIMIT=5---------
+mean=0.37s std=0.11s %%std=30.04 total=180.4s
+#iters=489 #warmup=1
+
+---------Benchmark results for MaunaLoa.py MODE=sparse WENDLAND_LIMIT=6---------
+mean=0.37s std=0.13s %%std=33.90 total=180.4s
+#iters=482 #warmup=1
+
+---------Benchmark results for MaunaLoa.py MODE=sparse WENDLAND_LIMIT=7---------
+mean=0.39s std=0.15s %%std=38.70 total=180.1s
+#iters=462 #warmup=1
+
+---------Benchmark results for MaunaLoa.py MODE=sparse WENDLAND_LIMIT=8---------
+mean=0.41s std=0.18s %%std=43.59 total=180.1s
+#iters=444 #warmup=1
+
+---------Benchmark results for MaunaLoa.py MODE=sparse WENDLAND_LIMIT=9---------
+mean=0.42s std=0.20s %%std=49.19 total=180.3s
+#iters=433 #warmup=1
+
+---------Benchmark results for MaunaLoa.py MODE=sparse WENDLAND_LIMIT=10---------
+mean=0.42s std=0.24s %%std=56.03 total=180.1s
+#iters=425 #warmup=1
+
+---------Benchmark results for MaunaLoa.py MODE=sparse WENDLAND_LIMIT=15---------
+mean=0.44s std=0.01s %%std=1.73 total=180.2s
+#iters=405 #warmup=1
+
+---------Benchmark results for MaunaLoa.py MODE=sparse WENDLAND_LIMIT=20---------
+mean=0.51s std=0.30s %%std=58.92 total=180.1s
+#iters=355 #warmup=1
+
+---------Benchmark results for MaunaLoa.py MODE=sparse WENDLAND_LIMIT=25---------
+mean=0.53s std=0.01s %%std=1.71 total=180.5s
+#iters=343 #warmup=1
+
+---------Benchmark results for MaunaLoa.py MODE=sparse WENDLAND_LIMIT=30---------
+mean=0.58s std=0.01s %%std=1.66 total=180.4s
+#iters=313 #warmup=1
+
+---------Benchmark results for MaunaLoa.py MODE=sparse WENDLAND_LIMIT=35---------
+mean=0.66s std=0.39s %%std=59.03 total=180.5s
+#iters=274 #warmup=1
+
+---------Benchmark results for MaunaLoa.py MODE=sparse WENDLAND_LIMIT=40---------
+mean=0.71s std=0.01s %%std=0.93 total=180.6s
+#iters=256 #warmup=1
+
+---------Benchmark results for MaunaLoa.py MODE=sparse WENDLAND_LIMIT=50---------
+mean=0.84s std=0.01s %%std=0.86 total=180.3s
+#iters=214 #warmup=1
+
+---------Benchmark results for MaunaLoa.py MODE=sparse WENDLAND_LIMIT=60---------
+mean=1.04s std=0.55s %%std=52.84 total=180.7s
+#iters=174 #warmup=1
+
+---------Benchmark results for MaunaLoa.py MODE=sparse WENDLAND_LIMIT=70---------
+mean=1.10s std=0.06s %%std=5.27 total=180.9s
+#iters=165 #warmup=1
+
+---------Benchmark results for MaunaLoa.py MODE=sparse WENDLAND_LIMIT=80---------
+mean=1.09s std=0.01s %%std=0.63 total=180.2s
+#iters=165 #warmup=1
+
+---------Benchmark results for MaunaLoa.py MODE=sparse WENDLAND_LIMIT=90---------
+mean=1.09s std=0.01s %%std=0.67 total=180.5s
+#iters=165 #warmup=1
+
+---------Benchmark results for MaunaLoa.py MODE=sparse WENDLAND_LIMIT=100---------
+mean=1.10s std=0.01s %%std=0.64 total=180.2s
+#iters=164 #warmup=1
+
+---------Benchmark results for MaunaLoa.py MODE=sparse WENDLAND_LIMIT=110---------
+mean=1.10s std=0.01s %%std=0.72 total=180.2s
+#iters=164 #warmup=1
+
+---------Benchmark results for MaunaLoa.py MODE=full WENDLAND_LIMIT=None---------
+mean=0.32s std=0.02s %%std=6.09 total=180.3s
+#iters=566 #warmup=1
+
+---------Benchmark summary for MaunaLoa.py---------
+MODE    WENDLAND_LIMIT        mean       %std    relative
+------  ----------------  --------  ---------  ----------
+sparse  1                 0.293785  12.4824       1
+sparse  2                 0.31964   19.4202       1.08801
+sparse  3                 0.340167  25.6894       1.15788
+sparse  4                 0.363472  34.0809       1.23721
+sparse  5                 0.36889   30.0364       1.25565
+sparse  6                 0.374237  33.9031       1.27385
+sparse  7                 0.389858  38.7008       1.32702
+sparse  8                 0.405634  43.5872       1.38072
+sparse  9                 0.416456  49.1868       1.41756
+sparse  10                0.423827  56.025        1.44264
+sparse  15                0.444986   1.73211      1.51467
+sparse  20                0.507211  58.9213       1.72647
+sparse  25                0.526266   1.71126      1.79133
+sparse  30                0.576495   1.65738      1.9623
+sparse  35                0.658879  59.0276       2.24273
+sparse  40                0.70566    0.931973     2.40196
+sparse  50                0.842657   0.858498     2.86828
+sparse  60                1.03866   52.8417       3.53545
+sparse  70                1.09633    5.26777      3.73176
+sparse  80                1.09189    0.628815     3.71662
+sparse  90                1.09422    0.66877      3.72456
+sparse  100               1.09884    0.644373     3.74028
+sparse  110               1.09894    0.72376      3.74062
+full    None              0.318469   6.08933      1.08402
+
+Wrote MaunaLoa.py results to ./MaunaLoa.py.csv
+
+(venv) bauer@bauer-desktop:~/sparse-gaussian-processes/applications$ cat MaunaLoa.py.csv 
+MODE,WENDLAND_LIMIT,mean,%std,relative
+sparse,1,0.2937846428807369,12.48242053018369,1.0
+sparse,2,0.31963965444700093,19.42015834585373,1.0880066817405427
+sparse,3,0.3401672453250525,25.68936628328971,1.1578796018386326
+sparse,4,0.3634724213230994,34.08085688170573,1.2372070158570287
+sparse,5,0.3688901562876009,30.036415314226627,1.255648194100307
+sparse,6,0.37423669995114023,33.90311801278025,1.2738470475567478
+sparse,7,0.3898580672937038,38.70080604262229,1.3270198995798712
+sparse,8,0.40563405848838185,43.587232107626114,1.3807190686037687
+sparse,9,0.41645630237411957,49.18683996111156,1.4175564055714842
+sparse,10,0.4238269104677088,56.02503680946628,1.4426448786152621
+sparse,15,0.4449855986936593,1.7321090311007994,1.5146659618770577
+sparse,20,0.5072107241187297,58.92132000681454,1.726471197218549
+sparse,25,0.5262656760980366,1.7112624404844445,1.7913314696700344
+sparse,30,0.5764950395773013,1.6573804806274814,1.9623048840280322
+sparse,35,0.6588793914683544,59.027599337311855,2.242729180830018
+sparse,40,0.7056599408388138,0.9319733200306768,2.4019633358619066
+sparse,50,0.8426573644174593,0.8584983852151501,2.868282549267014
+sparse,60,1.0386605509396256,52.841683780821434,3.535448758501901
+sparse,70,1.0963346654718573,5.267771973588752,3.731763017704499
+sparse,80,1.0918861750400428,0.6288152971006572,3.716621006235845
+sparse,90,1.0942185690908721,0.6687703440742858,3.7245601348028075
+sparse,100,1.098835908785099,0.6443734858330548,3.7402768844904393
+sparse,110,1.0989359951600797,0.7237601553417021,3.7406175638874264
+full,None,0.3184688916897184,6.089331992987803,1.0840215763728747

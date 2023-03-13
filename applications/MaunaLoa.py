@@ -36,8 +36,8 @@ X = jnp.array(X)
 y = jnp.array(y)
 
 def f(MODE: str = "sparse", X_TEST_SIZE: int = 1000, WENDLAND_LIMIT: float = 8.0):
-    X_ = X.copy()
-    y_ = y.copy()
+    X_ = X
+    y_ = y
     X_test = np.linspace(start=1958, stop=current_month, num=X_TEST_SIZE).reshape(-1, 1)
 
     if MODE == "full":
@@ -119,12 +119,11 @@ def f(MODE: str = "sparse", X_TEST_SIZE: int = 1000, WENDLAND_LIMIT: float = 8.0
         # plt.title("Monthly average of air samples measurements\nfrom the Mauna Loa Observatory")
         return mean_y_pred.block_until_ready()
 
-#param_dicts = [{"WENDLAND_LIMIT": x, "MODE": 'sparse'} for x in np.linspace(1,100,2)] + [{"WENDLAND_LIMIT": None, "MODE" : 'full'}]
-param_dicts = [{"X_TEST_SIZE": 10**x, "MODE": 'full'} for x in range(1)]
+param_dicts = [{"WENDLAND_LIMIT": x, "MODE": 'sparse'} for x in [1,2,3,4,5,6,7,8,9,10,15,20,25,30,35,40,50,60,70,80,90,100,110,np.inf]] + [{"WENDLAND_LIMIT": None, "MODE" : 'full'}]
 
 benchmark.benchmark_suite(
     lambda **kwargs: functools.partial(f, **kwargs),
     param_dicts,
     name=sys.argv[0],
-    target_total_secs=2,
+    target_total_secs=0.1,
 )
