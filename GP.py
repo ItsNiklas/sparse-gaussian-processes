@@ -102,15 +102,6 @@ def log_likelihood(kernel_, params, data_x, data_y, eps, p):
 @functools.partial(jax.jit, static_argnames=["p"])
 def inv_cov_chol(K, data_y, eps, p):
     # Get Kernel.
-    # TAPERING V1
-    # Ktaper = cov_matrix(data_x, data_x, Partial(WendlandTapering, 1))
-    # K = K * Ktaper
-    # jax.debug.print(str(jnp.count_nonzero(K)) + "/" + str(K.shape[0]**2))
-    # jax.debug.print("to" + str(jnp.count_nonzero(K)))
-
-    # TAPERING V0
-    # K = jnp.where(K < 1e-5, 0, K)
-
     # Kp, idx = band.permute(K)
     Kp = K
     # Kp, idx = K, jnp.arange(K.shape[0])
@@ -120,8 +111,6 @@ def inv_cov_chol(K, data_y, eps, p):
     # Alt: idx_inv = jnp.argsort(idx) (O(n log n))
 
     # Convert to band (can refactor out)
-    if p is None:
-        p = int(band.bandwidth(Kp))
     Kpb = band.to_band(Kp, p)  # TODO: bandwidth
 
     # Add noise
@@ -158,18 +147,18 @@ class GPR:
             # Compute values needed for prediction after fit.
             self.K_ = cov_matrix(self.data_x, self.data_x, self.covariance_function)
             bw = int(band.bandwidth(self.K_))
-            print(f"{bw=}")
+            #print(f"{bw=}")
             self.Lb_, self.alpha_ = inv_cov_chol(
                 self.K_, self.data_y, self.eps, p=bw
             )
 
         K_trans = cov_matrix(self.data_x, at_values, self.covariance_function)
         y_mean = jnp.dot(K_trans, self.alpha_)
-        print("NMLL:", -(
-                -0.5 * jnp.dot(self.data_y, self.alpha_)
-                - (jnp.log(self.Lb_[0])).sum()
-                - 0.5 * self.alpha_.shape[0] * jnp.log(2 * jnp.pi)
-        ))
+        # print("NMLL:", -(
+        #         -0.5 * jnp.dot(self.data_y, self.alpha_)
+        #         - (jnp.log(self.Lb_[0])).sum()
+        #         - 0.5 * self.alpha_.shape[0] * jnp.log(2 * jnp.pi)
+        # ))
 
         if return_std:
             V = jax.scipy.linalg.solve_triangular(band.to_ltri_full(self.Lb_), K_trans.T, lower=True)

@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # coding: utf-8
 
+from sklearn.datasets import fetch_openml
+
 NEW_DATA: bool = True
 
 import datetime
@@ -35,24 +37,41 @@ current_month = today.year + 30 + today.month / 12
 X = jnp.array(X)
 y = jnp.array(y)
 
+
+# Outside function scope to avoid recompilation for every loop,
+# as a new PyTree object is created each time using Partial causing permanent
+# cache misses. See #10868, #14743, etc.
+@jax.jit
+def kernel(theta, x__, y__):
+    return (
+            MaternKernel52(112 ** 2, 115, x__, y__)
+            + MaternKernel52(2.58 ** 2, 199, x__, y__)
+            * ExpSineSquaredKernel(1, 1.36, 1, x__, y__)
+            + RationalQuadraticKernel(0.575 ** 2, 1.05, 0.672, x__, y__)
+            + MaternKernel52(0.208 ** 2, 0.128, x__, y__)
+    ) * WendlandTapering(3, theta, x__, y__)
+
+
 def f(MODE: str = "sparse", X_TEST_SIZE: int = 1000, WENDLAND_LIMIT: float = 8.0):
     X_ = X
     y_ = y
+    y_mean = y.mean()
     X_test = np.linspace(start=1958, stop=current_month, num=X_TEST_SIZE).reshape(-1, 1)
 
     if MODE == "full":
         # Set up GPR
         kernel_ = (
-            112**2 * Matern(length_scale=115, nu=5 / 2)
-            + 2.58**2
-            * Matern(length_scale=199, nu=5 / 2)
-            * ExpSineSquared(length_scale=1.36, periodicity=1, periodicity_bounds="fixed")
-            + 0.575**2 * RationalQuadratic(alpha=0.672, length_scale=1.05)
-            + 0.208**2 * Matern(length_scale=0.128, nu=5 / 2)
-            + WhiteKernel(noise_level=0.0382)
+                112 ** 2 * Matern(length_scale=115, nu=5 / 2)
+                + 2.58 ** 2
+                * Matern(length_scale=199, nu=5 / 2)
+                * ExpSineSquared(
+            length_scale=1.36, periodicity=1, periodicity_bounds="fixed"
+        )
+                + 0.575 ** 2 * RationalQuadratic(alpha=0.672, length_scale=1.05)
+                + 0.208 ** 2 * Matern(length_scale=0.128, nu=5 / 2)
+                + WhiteKernel(noise_level=0.0382)
         )
         gpr = GaussianProcessRegressor(kernel=kernel_, optimizer=None)
-        y_mean = y_.mean()
         gpr.fit(X_, y_ - y_mean)
 
         # plt.figure(figsize=(12, 5))
@@ -60,7 +79,7 @@ def f(MODE: str = "sparse", X_TEST_SIZE: int = 1000, WENDLAND_LIMIT: float = 8.0
 
         mean_y_pred = gpr.predict(X_test, return_std=False)
         mean_y_pred += y_mean
-        #print(gpr.log_marginal_likelihood_value_)
+        # print(gpr.log_marginal_likelihood_value_)
         # plt.plot(X_, y_, color="black", linestyle="dashed", label="Measurements")
         # plt.plot(X_test, mean_y_pred, color="tab:blue", alpha=0.4, label="Gaussian process")
         # plt.fill_between(
@@ -81,49 +100,34 @@ def f(MODE: str = "sparse", X_TEST_SIZE: int = 1000, WENDLAND_LIMIT: float = 8.0
         return mean_y_pred
 
     if MODE == "sparse":
-        ##### BAND
-        @jax.jit
-        def kernel_(x__, y__):
-            return (
-                MaternKernel52(112**2, 115, x__, y__)
-                + MaternKernel52(2.58**2, 199, x__, y__)
-                * ExpSineSquaredKernel(1, 1.36, 1, x__, y__)
-                + RationalQuadraticKernel(0.575**2, 1.05, 0.672, x__, y__)
-                + MaternKernel52(0.208**2, 0.128, x__, y__)
-            ) * WendlandTapering(3, WENDLAND_LIMIT, x__, y__)
-
-        y_mean = y_.mean()
         gpr = GPR(
             X_,
             y_ - y_mean,
-            kernel_,
-            jnp.empty(0),
+            kernel,
+            jnp.array([WENDLAND_LIMIT]),
             eps=0.0382,
         )
-        # gpr.fit()
-        # plt.figure(figsize=(12, 5))
 
-        mean_y_pred = gpr.predict(X_test, return_std=False) +  y_mean
-        # plt.plot(X_, y_, color="black", linestyle="dashed", label="Measurements")
-        # plt.plot(X_test, mean_y_pred, color="tab:blue", alpha=0.4, label="Gaussian process")
-        # plt.fill_between(
-        #     X_test.ravel(),
-        #     mean_y_pred - std_y_pred,
-        #     mean_y_pred + std_y_pred,
-        #     color="tab:blue",
-        #     alpha=0.2,
-        # )
-        # plt.legend()
-        # plt.xlabel("Year")
-        # plt.ylabel("Monthly average of CO$_2$ concentration (ppm)")
-        # plt.title("Monthly average of air samples measurements\nfrom the Mauna Loa Observatory")
+        mean_y_pred = gpr.predict(X_test, return_std=False) + y_mean
         return mean_y_pred.block_until_ready()
 
-param_dicts = [{"WENDLAND_LIMIT": x, "MODE": 'sparse'} for x in [1,2,3,4,5,6,7,8,9,10,15,20,25,30,35,40,50,60,70,80,90,100,110,np.inf]] + [{"WENDLAND_LIMIT": None, "MODE" : 'full'}]
+
+param_dicts = [
+                  {"WENDLAND_LIMIT": x, "MODE": "sparse"}
+                  for x in
+                  [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 25, 30, 35, 40, 50, 60, 70, 80, 90, 100, 110, np.inf, ]
+              ] + [{"WENDLAND_LIMIT": None, "MODE": "full"}]
 
 benchmark.benchmark_suite(
     lambda **kwargs: functools.partial(f, **kwargs),
     param_dicts,
     name=sys.argv[0],
-    target_total_secs=0.1,
+    target_total_secs=180,
 )
+
+# f().block_until_ready()
+# print("---------")
+# f().block_until_ready()
+# with jax.profiler.trace("/tmp/jax-trace", create_perfetto_link=True):
+#     # Run the operations to be profiled
+#     f().block_until_ready()
