@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
-
+import liesel_sparse
+from jax.experimental import sparse
 from sklearn.datasets import fetch_openml
 
 NEW_DATA: bool = True
@@ -12,10 +13,10 @@ import pandas as pd
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import *
 
-import benchmark
-
 sys.path.insert(0, "../")
 from GP import *
+
+jax.config.parse_flags_with_absl()
 
 # Read data
 if not NEW_DATA:
@@ -50,6 +51,33 @@ def kernel(theta, x__, y__):
             + RationalQuadraticKernel(0.575 ** 2, 1.05, 0.672, x__, y__)
             + MaternKernel52(0.208 ** 2, 0.128, x__, y__)
     ) * WendlandTapering(3, theta, x__, y__)
+
+
+@jax.jit
+def inv_cov_chol2(K, data_y, eps):
+    K = K.at[jnp.diag_indices_from(K)].add(eps)
+
+    # Solve Kα=y using the Cholesky decomposition.
+    L = jax.lax.linalg.cholesky(K)
+    alpha = jax.lax.linalg.triangular_solve(
+        L.T,
+        jax.lax.linalg.triangular_solve(L, data_y, left_side=True, lower=True),
+        left_side=True,
+    )
+
+    return L, alpha
+
+def inv_cov_chol3(K, data_y, eps):
+    K = K.at[jnp.diag_indices_from(K)].add(eps)
+
+    K = sparse.BCOO.fromdense(K)
+
+    # Solve Kα=y using the Cholesky decomposition.
+    L_sp_idx = jnp.argwhere(liesel_sparse.symbolic_factorization(K) > 0)
+    L = jax.jit(liesel_sparse.cholesky_sparse)(K, L_sp_idx).todense()
+    alpha = jax.jit(liesel_sparse.solve_sparse)(K, data_y)
+
+    return L, alpha
 
 
 def f(MODE: str = "sparse", X_TEST_SIZE: int = 1000, WENDLAND_LIMIT: float = 8.0):
@@ -99,35 +127,77 @@ def f(MODE: str = "sparse", X_TEST_SIZE: int = 1000, WENDLAND_LIMIT: float = 8.0
         # plt.title("Monthly average of air samples measurements\nfrom the Mauna Loa Observatory")
         return mean_y_pred
 
-    if MODE == "sparse":
-        gpr = GPR(
-            X_,
-            y_ - y_mean,
-            kernel,
-            jnp.array([WENDLAND_LIMIT]),
-            eps=0.0382,
-        )
+    if MODE == "band":
+        data_x = X_
+        data_y = y_ - y_mean
+        covariance_function = Partial(kernel, WENDLAND_LIMIT)
+        eps = 0.0382
 
-        mean_y_pred = gpr.predict(X_test, return_std=False) + y_mean
+        K_ = cov_matrix(data_x, data_x, covariance_function)
+
+        L_, alpha_ = inv_cov_chol(K_, data_y, eps, int(jax.jit(band.bandwidth)(K_)))
+        K_trans = cov_matrix(data_x, X_test, covariance_function)
+        mean_y_pred = jnp.dot(K_trans, alpha_) + y_mean
         return mean_y_pred.block_until_ready()
 
+    if MODE == "jax":
+        data_x = X_
+        data_y = y_ - y_mean
+        covariance_function = Partial(kernel, jnp.inf)
+        eps = 0.0382
 
-param_dicts = [
-                  {"WENDLAND_LIMIT": x, "MODE": "sparse"}
-                  for x in
-                  [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 25, 30, 35, 40, 50, 60, 70, 80, 90, 100, 110, np.inf, ]
-              ] + [{"WENDLAND_LIMIT": None, "MODE": "full"}]
+        K_ = cov_matrix(data_x, data_x, covariance_function)
+
+        L_, alpha_ = inv_cov_chol2(K_, data_y, eps)
+        K_trans = cov_matrix(data_x, X_test, covariance_function)
+        mean_y_pred = jnp.dot(K_trans, alpha_) + y_mean
+
+        # print("NMLL:", -(
+        #         -0.5 * jnp.dot(data_y, alpha_)
+        #         - (jnp.log(jnp.diag(L_))).sum()
+        #         - 0.5 * L_.shape[0] * jnp.log(2 * jnp.pi)
+        # ))
+
+        return mean_y_pred.block_until_ready()
+
+    if MODE == "sparse":
+        data_x = X_
+        data_y = y_ - y_mean
+        covariance_function = Partial(kernel, WENDLAND_LIMIT)
+        eps = 0.0382
+
+        K_ = cov_matrix(data_x, data_x, covariance_function)
+
+        L_, alpha_ = inv_cov_chol3(K_, data_y, eps)
+        K_trans = cov_matrix(data_x, X_test, covariance_function)
+        mean_y_pred = jnp.dot(K_trans, alpha_) + y_mean
+
+        # print("NMLL:", -(
+        #         -0.5 * jnp.dot(data_y, alpha_)
+        #         - (jnp.log(jnp.diag(L_))).sum()
+        #         - 0.5 * L_.shape[0] * jnp.log(2 * jnp.pi)
+        # ))
+
+        return mean_y_pred.block_until_ready()
+
+import benchmark
+# param_dicts = [
+#                   {"WENDLAND_LIMIT": x, "MODE": "band"}
+#                   for x in
+#                   [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 25, 30, 35, 40, 50, 60, 70, 80, 90, 100, 110, np.inf, ]
+#               ] + [{"WENDLAND_LIMIT": None, "MODE": "full"}]
+param_dicts = [{"MODE": "full"}, {"MODE" : "jax"}, {"MODE": "band"}, {"MODE": "sparse"}]
 
 benchmark.benchmark_suite(
     lambda **kwargs: functools.partial(f, **kwargs),
     param_dicts,
     name=sys.argv[0],
-    target_total_secs=180,
+    target_total_secs=15,
 )
 
-# f().block_until_ready()
+# f(MODE="sparse").block_until_ready()
 # print("---------")
-# f().block_until_ready()
+# f(MODE="sparse").block_until_ready()
 # with jax.profiler.trace("/tmp/jax-trace", create_perfetto_link=True):
 #     # Run the operations to be profiled
-#     f().block_until_ready()
+#     f(MODE="sparse").block_until_ready()
