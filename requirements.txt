@@ -1,0 +1,11 @@
+#liesel_sparse
+absl_py
+jax
+jaxlib[cpu]
+jaxopt
+numpy
+optax
+pandas
+scikit_learn
+tabulate
+tqdm
