@@ -1,7 +1,7 @@
 #liesel_sparse
 absl_py
-jax
-jaxlib[cpu]
+jax[cpu]
+jaxlib
 jaxopt
 numpy
 optax

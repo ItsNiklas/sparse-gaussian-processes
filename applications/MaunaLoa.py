@@ -54,7 +54,7 @@ def kernel(theta, x__, y__):
 
 
 @jax.jit
-def inv_cov_chol2(K, data_y, eps):
+def inv_cov_chol_jax(K, data_y, eps):
     K = K.at[jnp.diag_indices_from(K)].add(eps)
 
     # Solve Kα=y using the Cholesky decomposition.
@@ -67,13 +67,14 @@ def inv_cov_chol2(K, data_y, eps):
 
     return L, alpha
 
-def inv_cov_chol3(K, data_y, eps):
+
+def inv_cov_chol_sparse(K, data_y, eps):
     K = K.at[jnp.diag_indices_from(K)].add(eps)
 
     K = sparse.BCOO.fromdense(K)
 
     # Solve Kα=y using the Cholesky decomposition.
-    L_sp_idx = jnp.argwhere(liesel_sparse.symbolic_factorization(K) > 0)
+    L_sp_idx = jnp.argwhere(jax.jit(liesel_sparse.symbolic_factorization)(K) > 0)
     L = jax.jit(liesel_sparse.cholesky_sparse)(K, L_sp_idx).todense()
     alpha = jax.jit(liesel_sparse.solve_sparse)(K, data_y)
 
@@ -148,7 +149,7 @@ def f(MODE: str = "sparse", X_TEST_SIZE: int = 1000, WENDLAND_LIMIT: float = 8.0
 
         K_ = cov_matrix(data_x, data_x, covariance_function)
 
-        L_, alpha_ = inv_cov_chol2(K_, data_y, eps)
+        L_, alpha_ = inv_cov_chol_jax(K_, data_y, eps)
         K_trans = cov_matrix(data_x, X_test, covariance_function)
         mean_y_pred = jnp.dot(K_trans, alpha_) + y_mean
 
@@ -168,36 +169,49 @@ def f(MODE: str = "sparse", X_TEST_SIZE: int = 1000, WENDLAND_LIMIT: float = 8.0
 
         K_ = cov_matrix(data_x, data_x, covariance_function)
 
-        L_, alpha_ = inv_cov_chol3(K_, data_y, eps)
+        L_, alpha_ = inv_cov_chol_sparse(K_, data_y, eps)
         K_trans = cov_matrix(data_x, X_test, covariance_function)
         mean_y_pred = jnp.dot(K_trans, alpha_) + y_mean
 
-        # print("NMLL:", -(
-        #         -0.5 * jnp.dot(data_y, alpha_)
-        #         - (jnp.log(jnp.diag(L_))).sum()
-        #         - 0.5 * L_.shape[0] * jnp.log(2 * jnp.pi)
-        # ))
+        print("NMLL:", -(
+                -0.5 * jnp.dot(data_y, alpha_)
+                - (jnp.log(jnp.diag(L_))).sum()
+                - 0.5 * L_.shape[0] * jnp.log(2 * jnp.pi)
+        ))
 
         return mean_y_pred.block_until_ready()
 
+
 import benchmark
-# param_dicts = [
-#                   {"WENDLAND_LIMIT": x, "MODE": "band"}
-#                   for x in
-#                   [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 25, 30, 35, 40, 50, 60, 70, 80, 90, 100, 110, np.inf, ]
-#               ] + [{"WENDLAND_LIMIT": None, "MODE": "full"}]
-param_dicts = [{"MODE": "full"}, {"MODE" : "jax"}, {"MODE": "band"}, {"MODE": "sparse"}]
+
+param_dicts = [
+                  {"WENDLAND_LIMIT": x, "MODE": "band"}
+                  for x in
+                  [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 25, 30, 35, 40, 50, 60, 70, 80, 90, 100, np.inf, ]
+              ] + \
+              [
+                  {"WENDLAND_LIMIT": x, "MODE": "sparse"}
+                  for x in
+                  [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 25, 30, 35, 40, 50, 60, 70, 80, 90, 100, np.inf, ]
+              ] + \
+              [
+                  {"WENDLAND_LIMIT": x, "MODE": "jax"}
+                  for x in
+                  [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 25, 30, 35, 40, 50, 60, 70, 80, 90, 100, np.inf, ]
+              ] + \
+              [{"WENDLAND_LIMIT": None, "MODE": "full"}]
+# param_dicts = [{"MODE": "sparse", "WENDLAND_LIMIT" : np.inf}, {"MODE" : "jax", "WENDLAND_LIMIT" : np.inf}, {"MODE": "band", "WENDLAND_LIMIT" : np.inf}, {"MODE": "full", "WENDLAND_LIMIT" : np.inf}]
 
 benchmark.benchmark_suite(
     lambda **kwargs: functools.partial(f, **kwargs),
     param_dicts,
     name=sys.argv[0],
-    target_total_secs=15,
+    target_total_secs=180,
 )
 
 # f(MODE="sparse").block_until_ready()
 # print("---------")
 # f(MODE="sparse").block_until_ready()
-# with jax.profiler.trace("/tmp/jax-trace", create_perfetto_link=True):
+# with jax.profiler.trace("/tmp/tensorboard"):
 #     # Run the operations to be profiled
 #     f(MODE="sparse").block_until_ready()
