@@ -6,6 +6,7 @@ jaxopt
 numpy
 optax
 pandas
+pyarrow
 scikit_learn
 tabulate
 tqdm
