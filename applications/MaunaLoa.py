@@ -81,7 +81,7 @@ def inv_cov_chol_sparse(K, data_y, eps):
     return L, alpha
 
 
-def f(MODE: str = "sparse", X_TEST_SIZE: int = 1000, WENDLAND_LIMIT: float = 8.0):
+def f(MODE: str = "band", X_TEST_SIZE: int = 1000, WENDLAND_LIMIT: float = 8.0):
     X_ = X
     y_ = y
     y_mean = y.mean()
@@ -173,11 +173,11 @@ def f(MODE: str = "sparse", X_TEST_SIZE: int = 1000, WENDLAND_LIMIT: float = 8.0
         K_trans = cov_matrix(data_x, X_test, covariance_function)
         mean_y_pred = jnp.dot(K_trans, alpha_) + y_mean
 
-        print("NMLL:", -(
-                -0.5 * jnp.dot(data_y, alpha_)
-                - (jnp.log(jnp.diag(L_))).sum()
-                - 0.5 * L_.shape[0] * jnp.log(2 * jnp.pi)
-        ))
+        # print("NMLL:", -(
+        #         -0.5 * jnp.dot(data_y, alpha_)
+        #         - (jnp.log(jnp.diag(L_))).sum()
+        #         - 0.5 * L_.shape[0] * jnp.log(2 * jnp.pi)
+        # ))
 
         return mean_y_pred.block_until_ready()
 
