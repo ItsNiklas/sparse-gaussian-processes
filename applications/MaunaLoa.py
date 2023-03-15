@@ -72,6 +72,7 @@ def inv_cov_chol_sparse(K, data_y, eps):
     K = K.at[jnp.diag_indices_from(K)].add(eps)
 
     K = sparse.BCOO.fromdense(K)
+    print(K.nse, K.shape, data_y.shape)
 
     # Solve Kα=y using the Cholesky decomposition.
     L_sp_idx = jnp.argwhere(jax.jit(liesel_sparse.symbolic_factorization)(K) > 0)
@@ -184,29 +185,30 @@ def f(MODE: str = "band", X_TEST_SIZE: int = 1000, WENDLAND_LIMIT: float = 8.0):
 
 import benchmark
 
+# param_dicts = [
+#                   {"WENDLAND_LIMIT": x, "MODE": "band"}
+#                   for x in
+#                   [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 25, 30, 35, 40, 50, 60, 70, 80, 90, 100, np.inf, ]
+#               ] + \
+#               [
+#                   {"WENDLAND_LIMIT": x, "MODE": "sparse"}
+#                   for x in
+#                   [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 25, 30, 35, 40, 50, 60, 70, 80, 90, 100, np.inf, ]
+#               ] + \
+#               [{"WENDLAND_LIMIT": None, "MODE": "jax"}] + \
+#               [{"WENDLAND_LIMIT": None, "MODE": "full"}]
+# param_dicts = [{"MODE": "sparse", "WENDLAND_LIMIT" : np.inf}, {"MODE" : "jax", "WENDLAND_LIMIT" : np.inf}, {"MODE": "band", "WENDLAND_LIMIT" : np.inf}, {"MODE": "full", "WENDLAND_LIMIT" : np.inf}]
 param_dicts = [
-                  {"WENDLAND_LIMIT": x, "MODE": "band"}
-                  for x in
-                  [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 25, 30, 35, 40, 50, 60, 70, 80, 90, 100, np.inf, ]
-              ] + \
-              [
                   {"WENDLAND_LIMIT": x, "MODE": "sparse"}
                   for x in
                   [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 25, 30, 35, 40, 50, 60, 70, 80, 90, 100, np.inf, ]
-              ] + \
-              [
-                  {"WENDLAND_LIMIT": x, "MODE": "jax"}
-                  for x in
-                  [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 25, 30, 35, 40, 50, 60, 70, 80, 90, 100, np.inf, ]
-              ] + \
-              [{"WENDLAND_LIMIT": None, "MODE": "full"}]
-# param_dicts = [{"MODE": "sparse", "WENDLAND_LIMIT" : np.inf}, {"MODE" : "jax", "WENDLAND_LIMIT" : np.inf}, {"MODE": "band", "WENDLAND_LIMIT" : np.inf}, {"MODE": "full", "WENDLAND_LIMIT" : np.inf}]
+              ]
 
 benchmark.benchmark_suite(
     lambda **kwargs: functools.partial(f, **kwargs),
     param_dicts,
     name=sys.argv[0],
-    target_total_secs=180,
+    target_total_secs=.1,
 )
 
 # f(MODE="sparse").block_until_ready()

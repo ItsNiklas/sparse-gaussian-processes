@@ -1,0 +1,247 @@
+(venv)  venv  ~/s/applications   band ●  python MaunaLoa.py --export_dir="./res/"                                                                                                                      12:22:52
+No GPU/TPU found, falling back to CPU. (Set TF_CPP_MIN_LOG_LEVEL=0 and rerun for more info.)
+---------Benchmark results for MaunaLoa.py MODE=band WENDLAND_LIMIT=1---------
+mean=0.05s std=0.00s %%std=7.86 total=120.0s
+#iters=2334 #warmup=1
+
+---------Benchmark results for MaunaLoa.py MODE=band WENDLAND_LIMIT=2---------
+mean=0.05s std=0.00s %%std=7.10 total=120.0s
+#iters=2306 #warmup=1
+
+---------Benchmark results for MaunaLoa.py MODE=band WENDLAND_LIMIT=3---------
+mean=0.05s std=0.00s %%std=6.84 total=120.1s
+#iters=2232 #warmup=1
+
+---------Benchmark results for MaunaLoa.py MODE=band WENDLAND_LIMIT=4---------
+mean=0.06s std=0.00s %%std=6.52 total=120.0s
+#iters=2072 #warmup=1
+
+---------Benchmark results for MaunaLoa.py MODE=band WENDLAND_LIMIT=5---------
+mean=0.06s std=0.00s %%std=6.48 total=120.1s
+#iters=1998 #warmup=1
+
+---------Benchmark results for MaunaLoa.py MODE=band WENDLAND_LIMIT=6---------
+mean=0.06s std=0.00s %%std=5.68 total=120.1s
+#iters=1884 #warmup=1
+
+---------Benchmark results for MaunaLoa.py MODE=band WENDLAND_LIMIT=7---------
+mean=0.07s std=0.00s %%std=5.95 total=120.0s
+#iters=1728 #warmup=1
+
+---------Benchmark results for MaunaLoa.py MODE=band WENDLAND_LIMIT=8---------
+mean=0.07s std=0.00s %%std=5.74 total=120.0s
+#iters=1637 #warmup=1
+
+---------Benchmark results for MaunaLoa.py MODE=band WENDLAND_LIMIT=9---------
+mean=0.08s std=0.01s %%std=7.69 total=120.0s
+#iters=1529 #warmup=1
+
+---------Benchmark results for MaunaLoa.py MODE=band WENDLAND_LIMIT=10---------
+mean=0.08s std=0.00s %%std=4.85 total=120.0s
+#iters=1443 #warmup=1
+
+---------Benchmark results for MaunaLoa.py MODE=band WENDLAND_LIMIT=15---------
+mean=0.12s std=0.00s %%std=3.90 total=120.1s
+#iters=1040 #warmup=1
+
+---------Benchmark results for MaunaLoa.py MODE=band WENDLAND_LIMIT=20---------
+mean=0.16s std=0.01s %%std=3.42 total=120.1s
+#iters=762 #warmup=1
+
+---------Benchmark results for MaunaLoa.py MODE=band WENDLAND_LIMIT=25---------
+mean=0.19s std=0.01s %%std=3.40 total=120.2s
+#iters=649 #warmup=1
+
+---------Benchmark results for MaunaLoa.py MODE=band WENDLAND_LIMIT=30---------
+mean=0.24s std=0.00s %%std=1.93 total=120.0s
+#iters=509 #warmup=1
+
+---------Benchmark results for MaunaLoa.py MODE=band WENDLAND_LIMIT=35---------
+mean=0.29s std=0.00s %%std=1.32 total=120.2s
+#iters=409 #warmup=1
+
+---------Benchmark results for MaunaLoa.py MODE=band WENDLAND_LIMIT=40---------
+mean=0.36s std=0.00s %%std=0.96 total=120.4s
+#iters=334 #warmup=1
+
+---------Benchmark results for MaunaLoa.py MODE=band WENDLAND_LIMIT=50---------
+mean=0.50s std=0.00s %%std=0.77 total=120.2s
+#iters=241 #warmup=1
+
+---------Benchmark results for MaunaLoa.py MODE=band WENDLAND_LIMIT=60---------
+mean=0.64s std=0.00s %%std=0.44 total=120.6s
+#iters=188 #warmup=1
+
+---------Benchmark results for MaunaLoa.py MODE=band WENDLAND_LIMIT=70---------
+mean=0.73s std=0.00s %%std=0.38 total=120.1s
+#iters=164 #warmup=1
+
+---------Benchmark results for MaunaLoa.py MODE=band WENDLAND_LIMIT=80---------
+mean=0.73s std=0.00s %%std=0.36 total=120.1s
+#iters=164 #warmup=1
+
+---------Benchmark results for MaunaLoa.py MODE=band WENDLAND_LIMIT=90---------
+mean=0.73s std=0.00s %%std=0.41 total=120.2s
+#iters=164 #warmup=1
+
+---------Benchmark results for MaunaLoa.py MODE=band WENDLAND_LIMIT=100---------
+mean=0.73s std=0.00s %%std=0.45 total=120.2s
+#iters=164 #warmup=1
+
+---------Benchmark results for MaunaLoa.py MODE=band WENDLAND_LIMIT=inf---------
+mean=0.73s std=0.00s %%std=0.42 total=120.1s
+#iters=164 #warmup=1
+
+---------Benchmark results for MaunaLoa.py MODE=sparse WENDLAND_LIMIT=1---------
+mean=0.10s std=0.00s %%std=4.58 total=120.0s
+#iters=1238 #warmup=1
+
+---------Benchmark results for MaunaLoa.py MODE=sparse WENDLAND_LIMIT=2---------
+mean=0.10s std=0.01s %%std=4.96 total=120.0s
+#iters=1170 #warmup=1
+
+---------Benchmark results for MaunaLoa.py MODE=sparse WENDLAND_LIMIT=3---------
+mean=0.11s std=0.01s %%std=4.68 total=120.0s
+#iters=1121 #warmup=1
+
+---------Benchmark results for MaunaLoa.py MODE=sparse WENDLAND_LIMIT=4---------
+mean=0.11s std=0.00s %%std=4.52 total=120.0s
+#iters=1096 #warmup=1
+
+---------Benchmark results for MaunaLoa.py MODE=sparse WENDLAND_LIMIT=5---------
+mean=0.12s std=0.01s %%std=4.31 total=120.1s
+#iters=1022 #warmup=1
+
+---------Benchmark results for MaunaLoa.py MODE=sparse WENDLAND_LIMIT=6---------
+mean=0.12s std=0.00s %%std=4.00 total=120.0s
+#iters=1007 #warmup=1
+
+---------Benchmark results for MaunaLoa.py MODE=sparse WENDLAND_LIMIT=7---------
+mean=0.12s std=0.00s %%std=3.84 total=120.0s
+#iters=988 #warmup=1
+
+---------Benchmark results for MaunaLoa.py MODE=sparse WENDLAND_LIMIT=8---------
+mean=0.13s std=0.00s %%std=3.91 total=120.1s
+#iters=956 #warmup=1
+
+---------Benchmark results for MaunaLoa.py MODE=sparse WENDLAND_LIMIT=9---------
+mean=0.13s std=0.00s %%std=3.49 total=120.0s
+#iters=918 #warmup=1
+
+---------Benchmark results for MaunaLoa.py MODE=sparse WENDLAND_LIMIT=10---------
+mean=0.15s std=0.00s %%std=3.12 total=120.1s
+#iters=825 #warmup=1
+
+---------Benchmark results for MaunaLoa.py MODE=sparse WENDLAND_LIMIT=15---------
+mean=0.15s std=0.01s %%std=3.39 total=120.1s
+#iters=776 #warmup=1
+
+---------Benchmark results for MaunaLoa.py MODE=sparse WENDLAND_LIMIT=20---------
+mean=0.21s std=0.01s %%std=2.39 total=120.1s
+#iters=568 #warmup=1
+
+---------Benchmark results for MaunaLoa.py MODE=sparse WENDLAND_LIMIT=25---------
+mean=0.19s std=0.00s %%std=2.48 total=120.1s
+#iters=624 #warmup=1
+
+---------Benchmark results for MaunaLoa.py MODE=sparse WENDLAND_LIMIT=30---------
+mean=0.30s std=0.01s %%std=1.76 total=120.1s
+#iters=407 #warmup=1
+
+---------Benchmark results for MaunaLoa.py MODE=sparse WENDLAND_LIMIT=35---------
+mean=0.39s std=0.01s %%std=2.16 total=120.3s
+#iters=305 #warmup=1
+
+---------Benchmark results for MaunaLoa.py MODE=sparse WENDLAND_LIMIT=40---------
+mean=0.36s std=0.01s %%std=1.47 total=120.3s
+#iters=330 #warmup=1
+
+---------Benchmark results for MaunaLoa.py MODE=sparse WENDLAND_LIMIT=50---------
+mean=0.41s std=0.01s %%std=1.24 total=120.3s
+#iters=291 #warmup=1
+
+---------Benchmark results for MaunaLoa.py MODE=sparse WENDLAND_LIMIT=60---------
+mean=0.55s std=0.00s %%std=0.90 total=120.3s
+#iters=219 #warmup=1
+
+---------Benchmark results for MaunaLoa.py MODE=sparse WENDLAND_LIMIT=70---------
+mean=0.43s std=0.00s %%std=1.14 total=120.4s
+#iters=279 #warmup=1
+
+---------Benchmark results for MaunaLoa.py MODE=sparse WENDLAND_LIMIT=80---------
+mean=0.43s std=0.01s %%std=1.59 total=120.2s
+#iters=278 #warmup=1
+
+---------Benchmark results for MaunaLoa.py MODE=sparse WENDLAND_LIMIT=90---------
+mean=0.43s std=0.01s %%std=1.20 total=120.1s
+#iters=279 #warmup=1
+
+---------Benchmark results for MaunaLoa.py MODE=sparse WENDLAND_LIMIT=100---------
+mean=0.43s std=0.01s %%std=1.23 total=120.2s
+#iters=279 #warmup=1
+
+---------Benchmark results for MaunaLoa.py MODE=sparse WENDLAND_LIMIT=inf---------
+mean=0.43s std=0.01s %%std=1.28 total=120.2s
+#iters=279 #warmup=1
+
+---------Benchmark results for MaunaLoa.py MODE=jax WENDLAND_LIMIT=None---------
+mean=0.06s std=0.01s %%std=17.83 total=120.0s
+#iters=1977 #warmup=1
+
+---------Benchmark results for MaunaLoa.py MODE=full WENDLAND_LIMIT=None---------
+mean=0.23s std=0.01s %%std=2.62 total=120.1s
+#iters=526 #warmup=1
+
+---------Benchmark summary for MaunaLoa.py---------
+MODE    WENDLAND_LIMIT         mean       %std    relative
+------  ----------------  ---------  ---------  ----------
+band    1                 0.0514319   7.8586       1
+band    2                 0.052055    7.09653      1.01212
+band    3                 0.0537898   6.84172      1.04584
+band    4                 0.0579334   6.52219      1.12641
+band    5                 0.0600891   6.48429      1.16832
+band    6                 0.0637209   5.68401      1.23894
+band    7                 0.0694679   5.95438      1.35068
+band    8                 0.0733247   5.7401       1.42567
+band    9                 0.0785078   7.69076      1.52644
+band    10                0.0831684   4.8493       1.61706
+band    15                0.115436    3.90418      2.24445
+band    20                0.157656    3.42395      3.06533
+band    25                0.185159    3.40272      3.60009
+band    30                0.235848    1.93429      4.58564
+band    35                0.293809    1.32054      5.71258
+band    40                0.360336    0.956844     7.00608
+band    50                0.498876    0.767402     9.69974
+band    60                0.641626    0.442552    12.4752
+band    70                0.732617    0.375717    14.2444
+band    80                0.732456    0.363202    14.2413
+band    90                0.732878    0.406565    14.2495
+band    100               0.73301     0.453256    14.252
+band    inf               0.732347    0.420857    14.2392
+sparse  1                 0.09697     4.58054      1.88541
+sparse  2                 0.102566    4.96249      1.99421
+sparse  3                 0.10706     4.67517      2.08158
+sparse  4                 0.109511    4.51914      2.12924
+sparse  5                 0.117468    4.31025      2.28396
+sparse  6                 0.119172    3.99831      2.31708
+sparse  7                 0.121504    3.84048      2.36243
+sparse  8                 0.125645    3.90712      2.44293
+sparse  9                 0.130736    3.48898      2.54193
+sparse  10                0.145555    3.11601      2.83005
+sparse  15                0.154784    3.38955      3.0095
+sparse  20                0.211398    2.39384      4.11025
+sparse  25                0.192466    2.47634      3.74215
+sparse  30                0.295083    1.75577      5.73735
+sparse  35                0.394525    2.15546      7.67082
+sparse  40                0.364622    1.47147      7.08942
+sparse  50                0.413285    1.23984      8.03558
+sparse  60                0.549199    0.896554    10.6782
+sparse  70                0.431618    1.14286      8.39202
+sparse  80                0.432377    1.58638      8.40679
+sparse  90                0.430572    1.19887      8.37169
+sparse  100               0.430757    1.23461      8.37529
+sparse  inf               0.430787    1.27929      8.37586
+jax     None              0.0607044  17.8287       1.18029
+full    None              0.228381    2.62366      4.44046
+
+Wrote MaunaLoa.py results to ./res/MaunaLoa.py.csv
