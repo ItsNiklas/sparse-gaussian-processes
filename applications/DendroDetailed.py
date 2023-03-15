@@ -1,184 +1,192 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-X_TEST_SIZE: int = 1000
-X_TRAIN_SIZE: int = 30
-WENDLAND_LIMIT: float = 8 * 24
-N_TREES: int = 25
-
 import sys
 
-import jax.numpy as jnp
-import jaxopt
+import liesel_sparse
 import pandas as pd
+from jax.experimental import sparse
 from sklearn import gaussian_process
 from sklearn.gaussian_process.kernels import *
-from tqdm import tqdm
+
+sys.path.insert(0, "../")
+from GP import *
+
+jax.config.parse_flags_with_absl()
 
 # ### Using Tree data
 
 dendro = pd.read_feather("../data/17766_12_D.feather")
+weibull_params = pd.read_csv("../data/17766_Wparams.csv", index_col=0, usecols=['index', '0', '1', '2'])
 
 
+@jax.jit
 def weibull_F(x, lambda_, k_):
     return 1 - jnp.exp(-((lambda_ * x) ** k_))
 
 
-# # Fit models
-#
-# dendro["deltagrowth"] = np.nan
-# #weibull_params = dict()
-#
-# for tree in tqdm(dendro.dendroNr.unique()):
-#     df_ = dendro[dendro.dendroNr.eq(tree)]
-#     y_ = jnp.array(df_.growth)
-#     x_ = jnp.array(df_.DOY)
-#
-#     def f_(params):
-#         p0, p1, p2 = params
-#         return jnp.mean((y_ - (p0 * weibull_F(x_, p1, p2))) ** 2)  # MSE Loss
-#         # return jnp.mean(
-#         #     jax.vmap(jax.tree_util.Partial(jaxopt.loss.huber_loss, delta = 10.))
-#         #     (y_, p0 * weibull_F(x_, p1, p2)) # Huber Loss
-#         # )
-#
-#     solver = jaxopt.ScipyBoundedMinimize(fun=f_)
-#     res = solver.run(
-#         jnp.array([max(y_), 1 / (0.632 * max(y_)), 3]),
-#         jnp.array([(0.1, 0.000001, 1), (100000, 1, 100)]),
-#     )
-#     weibull = lambda x__: res.params[0] * weibull_F(x__.ravel(), res.params[1], res.params[2])
-#
-#     dendro.loc[dendro["dendroNr"] == tree, "deltagrowth"] = y_ - weibull(x_)
-#     #weibull_params[tree] = res.params
-#
-# dendro.to_feather(r'../data/17766_12_D.feather')
-
-if "full" in sys.argv:
-    rng = np.random.default_rng()
-
-    X_test = np.linspace(0, dendro.DOY.max(), X_TEST_SIZE).reshape(-1, 1)
-
-    c = lambda s: 0 if s == "Beech" else (3 if s == "Sycamore" else 1)
-    for tree in tqdm(dendro.dendroNr.unique().tolist()[:N_TREES]):
-        df_ = dendro.loc[dendro.dendroNr.eq(tree)]
-
-        idx_train = np.sort(rng.integers(0, len(df_.DOY) - 1, X_TRAIN_SIZE))
-
-        X_train = df_.DOY.iloc[idx_train].array.reshape(-1, 1)
-        y_train = df_.deltagrowth.iloc[idx_train]
-
-        kernel_ = (
-            65.3**2 * Matern(length_scale=25, length_scale_bounds=(2, 16 * 48), nu=2.5)
-            + WhiteKernel(noise_level=0.1, noise_level_bounds="fixed")
-            + ConstantKernel(0.4**2) * ExpSineSquared(0.1, 48, periodicity_bounds="fixed")
-        )
-        gp_model = gaussian_process.GaussianProcessRegressor(
-            kernel=kernel_,
-            n_restarts_optimizer=5,
-            # normalize_y=True,
-            optimizer=None,
-        )
-
-        gp_model.fit(X_train, y_train)
-        mean_pred, std_pred = gp_model.predict(X_test, True)
-
-        # y_samples = gp_model.sample_y(X_test, 1)
-
-        weibull_pred = weibull_params[tree][0] * weibull_F(
-            X_test.ravel(), *weibull_params[tree][1:3]
-        )
-
-        print(gp_model.log_marginal_likelihood_value_)
-
-        # plt.plot(X_test, mean_pred + weibull_pred, lw=1, zorder=10, alpha = .7, color=sns.color_palette()[c(df_.species.iloc[0])])
-        #
-        # plt.scatter(df_.DOY, df_.deltagrowth, lw=1, zorder=1, alpha = .5, color=sns.color_palette()[c(df_.species.iloc[0])], s = .1)
-        #
-        # plt.fill_between(
-        #     X_test.ravel(),
-        #     mean_pred + weibull_pred - 1.96 * std_pred,
-        #     mean_pred + weibull_pred + 1.96 * std_pred,
-        #     alpha=.1, zorder=0, color=sns.color_palette("pastel")[c(df_.species.iloc[0])]
-        # )
-
-        # for idx, single_prior in enumerate(y_samples.T):
-        #     plt.plot(
-        #         X_test, single_prior + weibull_pred
-        #         , alpha=.4, lw=1, linestyle="dashed", c=sns.color_palette("pastel")[c(df_.species.iloc[0])+idx]
-        #     )
-
-    # plt.xlabel("DOY")
-    # plt.ylabel("growth")
-    # plt.autoscale(tight=True)
-    # plt.show()
+@jax.jit
+def kernel(theta, x, y):
+    # 37**2 * Matern(length_scale=3, length_scale_bounds=(2,16), nu = 2.5) + WhiteKernel(noise_level=.01, noise_level_bounds="fixed")
+    return (
+            MaternKernel32(65.3 ** 2, 25, x, y) + ExpSineSquaredKernel(0.4 ** 2, 0.1, 48, x, y)
+    ) * WendlandTapering(3, theta, x, y)
 
 
-# # SPARSE
+@jax.jit
+def inv_cov_chol_jax(K, data_y, eps):
+    K = K.at[jnp.diag_indices_from(K)].add(eps)
 
-else:
-    sys.path.insert(0, "../")
-    from GP import *
+    # Solve Kα=y using the Cholesky decomposition.
+    L = jax.lax.linalg.cholesky(K)
+    alpha = jax.lax.linalg.triangular_solve(
+        L.T,
+        jax.lax.linalg.triangular_solve(L, data_y, left_side=True, lower=True),
+        left_side=True,
+    )
 
-    # tree = 'SH_076_2013'
+    return L, alpha
 
-    # plt.figure(figsize=(18, 8))
 
+def inv_cov_chol_sparse(K, data_y, eps):
+    K = K.at[jnp.diag_indices_from(K)].add(eps)
+
+    K = sparse.BCOO.fromdense(K)
+
+    # Solve Kα=y using the Cholesky decomposition.
+    L_sp_idx = jnp.argwhere(jax.jit(liesel_sparse.symbolic_factorization)(K) > 0)
+    L = jax.jit(liesel_sparse.cholesky_sparse)(K, L_sp_idx).todense()
+    alpha = jax.jit(liesel_sparse.solve_sparse)(K, data_y)
+
+    return L, alpha
+
+
+jaxkey = jax.random.PRNGKey(0)
+
+
+def f(MODE: str = "band", X_TEST_SIZE: int = 10000, X_TRAIN_SIZE: int = 1000,  # N_TREES: int = 70,
+      WENDLAND_LIMIT: float = 8.0 * 24):
     X_test = jnp.linspace(0, dendro.DOY.max(), X_TEST_SIZE).reshape(-1, 1)
 
-    c = lambda s: 0 if s == "Beech" else (3 if s == "Sycamore" else 1)
-    for tree in tqdm(dendro.dendroNr.unique().tolist()[:N_TREES]):
-        df_ = dendro.loc[dendro.dendroNr.eq(tree)]
+    if MODE == "full":
+        rng = np.random.default_rng()
 
-        idx_train = jnp.sort(
-            jax.random.randint(jax.random.PRNGKey(0), (X_TRAIN_SIZE,), 0, len(df_.DOY) - 1)
-        )
-        X_train = jnp.array(df_.DOY.iloc[idx_train].array).reshape(-1, 1)
-        y_train = jnp.array(df_.deltagrowth.iloc[idx_train].array)
+        for tree in dendro.dendroNr.unique():
+            df_ = dendro.loc[dendro.dendroNr.eq(tree)]
 
-        # kernel_ = 65.3**2 * Matern(length_scale=25, length_scale_bounds=(2,16*48), nu = 2.5) + WhiteKernel(noise_level=0.1, noise_level_bounds="fixed") + ConstantKernel(0.4**2) * ExpSineSquared(0.1, 48, periodicity_bounds="fixed")
-        # gp_model = gaussian_process.GaussianProcessRegressor(
-        #     kernel=kernel_,
-        #     n_restarts_optimizer=5,
-        #     #normalize_y=True,
-        #     optimizer=None
-        # )
+            idx_train = np.sort(rng.integers(0, len(df_.DOY) - 1, X_TRAIN_SIZE))
 
-        def kernel_(x, y):
-            # 37**2 * Matern(length_scale=3, length_scale_bounds=(2,16), nu = 2.5) + WhiteKernel(noise_level=.01, noise_level_bounds="fixed")
-            return (
-                MaternKernel32(65.3**2, 25, x, y) + ExpSineSquaredKernel(0.4**2, 0.1, 48, x, y)
-            ) * WendlandTapering(3, WENDLAND_LIMIT, x, y)
+            X_train = df_.DOY.iloc[idx_train].array.reshape(-1, 1)
+            y_train = df_.deltagrowth.iloc[idx_train]
 
-        gp_model = GPR(X_train, y_train, kernel_, jnp.empty(0), eps=0.1)
+            kernel_ = (
+                    65.3 ** 2 * Matern(length_scale=25, length_scale_bounds=(2, 16 * 48), nu=2.5)
+                    + WhiteKernel(noise_level=0.1, noise_level_bounds="fixed")
+                    + ConstantKernel(0.4 ** 2) * ExpSineSquared(0.1, 48, periodicity_bounds="fixed")
+            )
+            gp_model = gaussian_process.GaussianProcessRegressor(
+                kernel=kernel_,
+                # n_restarts_optimizer=2,
+                # normalize_y=True,
+                optimizer=None,
+            )
 
-        # gp_model.fit(X_train, y_train)
-        mean_pred = gp_model.predict(X_test)
+            gp_model.fit(X_train, y_train)
+            mean_pred = gp_model.predict(X_test, False)
+            p1, p2, p3 = weibull_params.loc[tree].values
+            weibull_pred = mean_pred + p1 * weibull_F(
+                X_test.ravel(), p2, p3
+            )
 
-        # y_samples = gp_model.sample_y(X_test, 1)
+            # print(gp_model.log_marginal_likelihood_value_)
+            return weibull_pred
 
-        weibull_pred = weibull_params[tree][0] * weibull_F(
-            X_test.ravel(), *weibull_params[tree][1:3]
-        )
+    # # Band
+    if MODE == "band":
+        for tree in dendro.dendroNr.unique():
+            df_ = dendro.loc[dendro.dendroNr.eq(tree)]
 
-        # plt.plot(X_test, mean_pred + weibull_pred, lw=1, zorder=10, alpha = .7, color=sns.color_palette()[c(df_.species.iloc[0])])
+            idx_train = jnp.sort(
+                jax.random.randint(jaxkey, (X_TRAIN_SIZE,), 0, len(df_.DOY) - 1)
+            )
+            X_train = jnp.array(df_.DOY.iloc[idx_train].array).reshape(-1, 1)
+            y_train = jnp.array(df_.deltagrowth.iloc[idx_train].array)
 
-        # plt.scatter(df_.DOY, df_.deltagrowth, lw=1, zorder=1, alpha = .5, color=sns.color_palette()[c(df_.species.iloc[0])], s = .1)
+            covariance_function = Partial(kernel, WENDLAND_LIMIT)
+            eps = 0.1
 
-        # plt.fill_between(
-        #     X_test.ravel(),
-        #     mean_pred + weibull_pred - 1.96 * std_pred,
-        #     mean_pred + weibull_pred + 1.96 * std_pred,
-        #     alpha=.1, zorder=0, color=sns.color_palette("pastel")[c(df_.species.iloc[0])]
-        # )
+            K_ = cov_matrix(X_train, X_train, covariance_function)
 
-        # for idx, single_prior in enumerate(y_samples.T):
-        #     plt.plot(
-        #         X_test, single_prior + weibull_pred
-        #         , alpha=.4, lw=1, linestyle="dashed", c=sns.color_palette("pastel")[c(df_.species.iloc[0])+idx]
-        #     )
+            L_, alpha_ = inv_cov_chol(K_, y_train, eps, int(jax.jit(band.bandwidth)(K_)))
+            K_trans = cov_matrix(X_train, X_test, covariance_function)
+            mean_pred = jnp.dot(K_trans, alpha_)
 
-    # plt.xlabel("DOY")
-    # plt.ylabel("growth")
-    # plt.autoscale(tight=True)
-    # plt.show()
+            p1, p2, p3 = weibull_params.loc[tree].values
+            weibull_pred = mean_pred + p1 * weibull_F(
+                X_test.ravel(), p2, p3
+            )
+
+            return weibull_pred.block_until_ready()
+
+    if MODE == "jax":
+        for tree in dendro.dendroNr.unique():
+            df_ = dendro.loc[dendro.dendroNr.eq(tree)]
+
+            idx_train = jnp.sort(
+                jax.random.randint(jaxkey, (X_TRAIN_SIZE,), 0, len(df_.DOY) - 1)
+            )
+            X_train = jnp.array(df_.DOY.iloc[idx_train].array).reshape(-1, 1)
+            y_train = jnp.array(df_.deltagrowth.iloc[idx_train].array)
+
+            covariance_function = Partial(kernel, WENDLAND_LIMIT)
+            eps = 0.1
+
+            K_ = cov_matrix(X_train, X_train, covariance_function)
+
+            L_, alpha_ = inv_cov_chol_jax(K_, y_train, eps)
+            K_trans = cov_matrix(X_train, X_test, covariance_function)
+            mean_pred = jnp.dot(K_trans, alpha_)
+
+            p1, p2, p3 = weibull_params.loc[tree].values
+            weibull_pred = mean_pred + p1 * weibull_F(
+                X_test.ravel(), p2, p3
+            )
+
+            return weibull_pred.block_until_ready()
+
+    if MODE == "sparse":
+        for tree in dendro.dendroNr.unique():
+            df_ = dendro.loc[dendro.dendroNr.eq(tree)]
+
+            idx_train = jnp.sort(
+                jax.random.randint(jaxkey, (X_TRAIN_SIZE,), 0, len(df_.DOY) - 1)
+            )
+            X_train = jnp.array(df_.DOY.iloc[idx_train].array).reshape(-1, 1)
+            y_train = jnp.array(df_.deltagrowth.iloc[idx_train].array)
+
+            covariance_function = Partial(kernel, WENDLAND_LIMIT)
+            eps = 0.1
+
+            K_ = cov_matrix(X_train, X_train, covariance_function)
+
+            L_, alpha_ = inv_cov_chol_sparse(K_, y_train, eps)
+            K_trans = cov_matrix(X_train, X_test, covariance_function)
+            mean_pred = jnp.dot(K_trans, alpha_)
+
+            p1, p2, p3 = weibull_params.loc[tree].values
+            weibull_pred = mean_pred + p1 * weibull_F(
+                X_test.ravel(), p2, p3
+            )
+
+            return weibull_pred.block_until_ready()
+
+import benchmark
+
+param_dicts = [{"MODE": "sparse", "WENDLAND_LIMIT" : 200}, {"MODE" : "jax", "WENDLAND_LIMIT" : 200}, {"MODE": "band", "WENDLAND_LIMIT" : 200}, {"MODE": "full", "WENDLAND_LIMIT" : None}]
+
+benchmark.benchmark_suite(
+    lambda **kwargs: functools.partial(f, **kwargs),
+    param_dicts,
+    name=sys.argv[0],
+    target_total_secs=5,
+)

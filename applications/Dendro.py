@@ -62,15 +62,14 @@ def inv_cov_chol_sparse(K, data_y, eps):
 
 jaxkey = jax.random.PRNGKey(0)
 
-
-def f(MODE: str = "band", X_TEST_SIZE: int = 1000, X_TRAIN_SIZE: int = 180, N_TREES: int = 70,
+def f(MODE: str = "band", X_TEST_SIZE: int = 1000, X_TRAIN_SIZE: int = 183,# N_TREES: int = 70,
       WENDLAND_LIMIT: float = 8.0):
     X_test = jnp.linspace(0, dendro.DOY.max(), X_TEST_SIZE).reshape(-1, 1)
 
     if MODE == "full":
         rng = np.random.default_rng()
 
-        for tree in dendro.dendroNr.unique()[:N_TREES]:
+        for tree in dendro.dendroNr.unique():
             df_ = dendro.loc[dendro.dendroNr.eq(tree)]
 
             idx_train = np.sort(rng.integers(0, len(df_.DOY) - 1, X_TRAIN_SIZE))
@@ -100,7 +99,7 @@ def f(MODE: str = "band", X_TEST_SIZE: int = 1000, X_TRAIN_SIZE: int = 180, N_TR
 
     # # Band
     if MODE == "band":
-        for tree in dendro.dendroNr.unique()[:N_TREES]:
+        for tree in dendro.dendroNr.unique():
             df_ = dendro.loc[dendro.dendroNr.eq(tree)]
 
             idx_train = jnp.sort(
@@ -126,7 +125,7 @@ def f(MODE: str = "band", X_TEST_SIZE: int = 1000, X_TRAIN_SIZE: int = 180, N_TR
             return weibull_pred.block_until_ready()
 
     if MODE == "jax":
-        for tree in dendro.dendroNr.unique()[:N_TREES]:
+        for tree in dendro.dendroNr.unique():
             df_ = dendro.loc[dendro.dendroNr.eq(tree)]
 
             idx_train = jnp.sort(
@@ -152,7 +151,7 @@ def f(MODE: str = "band", X_TEST_SIZE: int = 1000, X_TRAIN_SIZE: int = 180, N_TR
             return weibull_pred.block_until_ready()
 
     if MODE == "sparse":
-        for tree in dendro.dendroNr.unique()[:N_TREES]:
+        for tree in dendro.dendroNr.unique():
             df_ = dendro.loc[dendro.dendroNr.eq(tree)]
 
             idx_train = jnp.sort(
@@ -187,3 +186,14 @@ benchmark.benchmark_suite(
     name=sys.argv[0],
     target_total_secs=2,
 )
+
+# f(MODE="sparse").block_until_ready()
+# f(MODE="jax").block_until_ready()
+# f(MODE="band").block_until_ready()
+# f(MODE="full").block_until_ready()
+# with jax.profiler.trace("/tmp/tensorboard"):
+#     # Run the operations to be profiled
+#     f(MODE="sparse").block_until_ready()
+#     f(MODE="jax").block_until_ready()
+#     f(MODE="band").block_until_ready()
+#     f(MODE="full").block_until_ready()
