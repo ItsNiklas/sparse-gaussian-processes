@@ -105,12 +105,15 @@ def benchmark_suite(prepare: Callable[..., Callable], params_list: List[Dict],
   assert all(p.keys() == params_list[0].keys() for p in params_list)
 
   times = []
-  for params in params_list:
-    f = prepare(**params)
-    subname = name + "".join(f" {n}={_param_str(p)}"
-                             for n, p in params.items())
-    times.append(benchmark(f, name=subname,
-                           target_total_secs=target_total_secs))
+  try :
+    for params in params_list:
+      f = prepare(**params)
+      subname = name + "".join(f" {n}={_param_str(p)}"
+                               for n, p in params.items())
+      times.append(benchmark(f, name=subname,
+                             target_total_secs=target_total_secs))
+  except Exception:
+    pass
 
   param_names = list(params_list[0].keys())
   data_header = param_names + ["mean", "%std", "relative"]
