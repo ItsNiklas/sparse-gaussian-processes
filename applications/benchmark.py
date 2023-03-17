@@ -19,6 +19,7 @@ import os
 import time
 from typing import Any, Optional, Union, Callable, List, Dict
 
+import jax
 from absl import flags
 import numpy as np
 from tabulate import tabulate
@@ -68,7 +69,8 @@ def benchmark(f: Callable[[], Any], iters: Optional[int] = None,
       warmup = np.clip(1, iters // 10, 10)
   for _ in range(warmup):
     f()
-
+  print("\n Warmup done.")
+  jax.config.update("jax_log_compiles", True)
   times: List[float] = []
   count = 0
   while (count < iters if iters is not None
@@ -81,10 +83,11 @@ def benchmark(f: Callable[[], Any], iters: Optional[int] = None,
 
   times_arr = np.array(times)
   print("---------Benchmark results for %s---------" % (name or f.__name__))
-  print(f"mean={times_arr.mean():.2f}s std={times_arr.std():.2f}s "
+  print(f"mean={times_arr.mean():.3f}s std={times_arr.std():.2f}s "
         f"%%std={_pstd(times_arr):.2f} total={times_arr.sum():.1f}s")
   print("#iters=%d #warmup=%d" % (count, warmup))
   print()
+  jax.config.update("jax_log_compiles", False)
   return times_arr
 
 

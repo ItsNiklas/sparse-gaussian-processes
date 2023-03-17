@@ -72,7 +72,6 @@ def inv_cov_chol_sparse(K, data_y, eps):
     K = K.at[jnp.diag_indices_from(K)].add(eps)
 
     K = sparse.BCOO.fromdense(K)
-    print(K.nse, K.shape, data_y.shape)
 
     # Solve Kα=y using the Cholesky decomposition.
     L_sp_idx = jnp.argwhere(jax.jit(liesel_sparse.symbolic_factorization)(K) > 0)
@@ -198,22 +197,22 @@ import benchmark
 #               [{"WENDLAND_LIMIT": None, "MODE": "jax"}] + \
 #               [{"WENDLAND_LIMIT": None, "MODE": "full"}]
 # param_dicts = [{"MODE": "sparse", "WENDLAND_LIMIT" : np.inf}, {"MODE" : "jax", "WENDLAND_LIMIT" : np.inf}, {"MODE": "band", "WENDLAND_LIMIT" : np.inf}, {"MODE": "full", "WENDLAND_LIMIT" : np.inf}]
-param_dicts = [
-                  {"WENDLAND_LIMIT": x, "MODE": "sparse"}
-                  for x in
-                  [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 25, 30, 35, 40, 50, 60, 70, 80, 90, 100, np.inf, ]
-              ]
+# param_dicts = [
+#                   {"WENDLAND_LIMIT": x, "MODE": "sparse"}
+#                   for x in
+#                   [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 25, 30, 35, 40, 50, 60, 70, 80, 90, 100, np.inf, ]
+#               ]
+#
+# benchmark.benchmark_suite(
+#     lambda **kwargs: functools.partial(f, **kwargs),
+#     param_dicts,
+#     name=sys.argv[0],
+#     target_total_secs=.1,
+# )
 
-benchmark.benchmark_suite(
-    lambda **kwargs: functools.partial(f, **kwargs),
-    param_dicts,
-    name=sys.argv[0],
-    target_total_secs=.1,
-)
-
-# f(MODE="sparse").block_until_ready()
-# print("---------")
-# f(MODE="sparse").block_until_ready()
-# with jax.profiler.trace("/tmp/tensorboard"):
-#     # Run the operations to be profiled
-#     f(MODE="sparse").block_until_ready()
+f(MODE="band")
+print("---------")
+with jax.profiler.trace("/tmp/tensorboard"):
+    # Run the operations to be profiled
+    f(MODE="band")
+    jax.numpy.linalg.det(jnp.eye(1)).block_until_ready()

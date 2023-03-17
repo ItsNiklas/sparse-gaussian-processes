@@ -62,13 +62,14 @@ def inv_cov_chol_sparse(K, data_y, eps):
 
 jaxkey = jax.random.PRNGKey(0)
 
+rng = np.random.default_rng()
+
+
 def f(MODE: str = "band", X_TEST_SIZE: int = 500, X_TRAIN_SIZE: int = 183,# N_TREES: int = 70,
       WENDLAND_LIMIT: float = 8.0):
     X_test = jnp.linspace(0, dendro.DOY.max(), X_TEST_SIZE).reshape(-1, 1)
 
     if MODE == "full":
-        rng = np.random.default_rng()
-
         for tree in dendro.dendroNr.unique():
             df_ = dendro.loc[dendro.dendroNr.eq(tree)]
 
@@ -135,7 +136,7 @@ def f(MODE: str = "band", X_TEST_SIZE: int = 500, X_TRAIN_SIZE: int = 183,# N_TR
             X_train = jnp.array(df_.DOY.iloc[idx_train].array).reshape(-1, 1)
             y_train = jnp.array(df_.deltagrowth.iloc[idx_train].array)
 
-            covariance_function = Partial(kernel, WENDLAND_LIMIT)
+            covariance_function = Partial(kernel, jnp.inf)
             eps = 0.01
 
             K_ = cov_matrix(X_train, X_train, covariance_function)
@@ -183,41 +184,44 @@ import benchmark
 
 #param_dicts = [{"MODE": "sparse", "WENDLAND_LIMIT" : 16}, {"MODE" : "jax", "WENDLAND_LIMIT" : 16}, {"MODE": "band", "WENDLAND_LIMIT" : 16}, {"MODE": "full", "WENDLAND_LIMIT" : None}]
 
-param_dicts = [
-                  {"WENDLAND_LIMIT": x, "MODE": "band", "X_TRAIN_SIZE" : y}
-                  for x in
-                  [40,60,80,100,120,140,160,180,200, np.inf,]
-                  for y in
-                  [50,75,100,125,150,175]
-              ] + \
-              [
-                  {"WENDLAND_LIMIT": x, "MODE": "sparse", "X_TRAIN_SIZE" : y}
-                  for x in
-                  [40,60,80,100,120,140,160,180,200, np.inf,]
-                  for y in
-                  [50,75,100,125,150,175]
-              ] + \
-              [{"WENDLAND_LIMIT": None, "MODE": "jax", "X_TRAIN_SIZE" : y} for y in
+param_dicts = [{"WENDLAND_LIMIT": None, "MODE": "jax", "X_TRAIN_SIZE" : y} for y in
                   [50,75,100,125,150,175]] + \
               [{"WENDLAND_LIMIT": None, "MODE": "full", "X_TRAIN_SIZE" : y} for y in
                   [50,75,100,125,150,175]]
 
-print(len(param_dicts), "Benchmarks")
+#[
+#                  {"WENDLAND_LIMIT": x, "MODE": "band", "X_TRAIN_SIZE" : y}
+#                  for x in
+#                  [40,60,80,100,120,140,160,180,200, np.inf,]
+#                  for y in
+#                  [50,75,100,125,150,175]
+#              ] + \
+#              [
+#                  {"WENDLAND_LIMIT": x, "MODE": "sparse", "X_TRAIN_SIZE" : y}
+#                  for x in
+#                  [40,60,80,100,120,140,160,180,200, np.inf,]
+#                  for y in
+#                  [50,75,100,125,150,175]
+#              ] + \
 
-benchmark.benchmark_suite(
-    lambda **kwargs: functools.partial(f, **kwargs),
-    param_dicts,
-    name=sys.argv[0],
-    target_total_secs=2,
-)
+# f(MODE="sparse")
+# f(MODE="jax")
+# f(MODE="band")
+# f(MODE="full")
+with jax.profiler.trace("/tmp/tensorboard"):
+    # Run the operations to be profiled
+    f(MODE="sparse")
+    # f(MODE="jax")
+    # f(MODE="band")
+    # f(MODE="full")
 
-# f(MODE="sparse").block_until_ready()
-# f(MODE="jax").block_until_ready()
-# f(MODE="band").block_until_ready()
-# f(MODE="full").block_until_ready()
-# with jax.profiler.trace("/tmp/tensorboard"):
-#     # Run the operations to be profiled
-#     f(MODE="sparse").block_until_ready()
-#     f(MODE="jax").block_until_ready()
-#     f(MODE="band").block_until_ready()
-#     f(MODE="full").block_until_ready()
+# print(len(param_dicts), "Benchmarks")
+#
+#
+# benchmark.benchmark_suite(
+#     lambda **kwargs: functools.partial(f, **kwargs),
+#     param_dicts,
+#     name=sys.argv[0],
+#     target_total_secs=120,
+# )
+

@@ -17,8 +17,10 @@ jax.config.parse_flags_with_absl()
 # ### Using Tree data
 
 dendro = pd.read_feather("../data/17766_12_D.feather")
-weibull_params = pd.read_csv("../data/17766_Wparams.csv", index_col=0, usecols=['index', '0', '1', '2'])
+dendro.DOY = dendro.DOY / 48
 
+
+# weibull_params = pd.read_csv("../data/17766_Wparams.csv", index_col=0, usecols=['index', '0', '1', '2'])
 
 @jax.jit
 def weibull_F(x, lambda_, k_):
@@ -61,17 +63,16 @@ def inv_cov_chol_sparse(K, data_y, eps):
     return L, alpha
 
 
-jaxkey = jax.random.PRNGKey(0)
 
-
-def f(MODE: str = "band", X_TEST_SIZE: int = 10000, X_TRAIN_SIZE: int = 1000,  # N_TREES: int = 70,
-      WENDLAND_LIMIT: float = 8.0 * 24):
+def f(MODE: str = "band", X_TEST_SIZE: int = 10000, X_TRAIN_SIZE: int = 1000, N_TREES: int = 2,
+      WENDLAND_LIMIT: float = 8.0):
     X_test = jnp.linspace(0, dendro.DOY.max(), X_TEST_SIZE).reshape(-1, 1)
 
-    if MODE == "full":
-        rng = np.random.default_rng()
+    jaxkey = jax.random.PRNGKey(0)
+    rng = np.random.default_rng(0)
 
-        for tree in dendro.dendroNr.unique():
+    if MODE == "full":
+        for tree in dendro.dendroNr.unique()[:N_TREES]:
             df_ = dendro.loc[dendro.dendroNr.eq(tree)]
 
             idx_train = np.sort(rng.integers(0, len(df_.DOY) - 1, X_TRAIN_SIZE))
@@ -93,17 +94,16 @@ def f(MODE: str = "band", X_TEST_SIZE: int = 10000, X_TRAIN_SIZE: int = 1000,  #
 
             gp_model.fit(X_train, y_train)
             mean_pred = gp_model.predict(X_test, False)
-            p1, p2, p3 = weibull_params.loc[tree].values
+            p1, p2, p3 = 0, 0, 0  # weibull_params.loc[tree].values
             weibull_pred = mean_pred + p1 * weibull_F(
                 X_test.ravel(), p2, p3
             )
 
             # print(gp_model.log_marginal_likelihood_value_)
-            return weibull_pred
 
     # # Band
     if MODE == "band":
-        for tree in dendro.dendroNr.unique():
+        for tree in dendro.dendroNr.unique()[:N_TREES]:
             df_ = dendro.loc[dendro.dendroNr.eq(tree)]
 
             idx_train = jnp.sort(
@@ -121,15 +121,16 @@ def f(MODE: str = "band", X_TEST_SIZE: int = 10000, X_TRAIN_SIZE: int = 1000,  #
             K_trans = cov_matrix(X_train, X_test, covariance_function)
             mean_pred = jnp.dot(K_trans, alpha_)
 
-            p1, p2, p3 = weibull_params.loc[tree].values
+            p1, p2, p3 = 0, 0, 0  # weibull_params.loc[tree].values
             weibull_pred = mean_pred + p1 * weibull_F(
                 X_test.ravel(), p2, p3
             )
 
-            return weibull_pred.block_until_ready()
+            weibull_pred.block_until_ready()
+        return
 
     if MODE == "jax":
-        for tree in dendro.dendroNr.unique():
+        for tree in dendro.dendroNr.unique()[:N_TREES]:
             df_ = dendro.loc[dendro.dendroNr.eq(tree)]
 
             idx_train = jnp.sort(
@@ -138,7 +139,7 @@ def f(MODE: str = "band", X_TEST_SIZE: int = 10000, X_TRAIN_SIZE: int = 1000,  #
             X_train = jnp.array(df_.DOY.iloc[idx_train].array).reshape(-1, 1)
             y_train = jnp.array(df_.deltagrowth.iloc[idx_train].array)
 
-            covariance_function = Partial(kernel, WENDLAND_LIMIT)
+            covariance_function = Partial(kernel, jnp.inf)
             eps = 0.1
 
             K_ = cov_matrix(X_train, X_train, covariance_function)
@@ -147,15 +148,17 @@ def f(MODE: str = "band", X_TEST_SIZE: int = 10000, X_TRAIN_SIZE: int = 1000,  #
             K_trans = cov_matrix(X_train, X_test, covariance_function)
             mean_pred = jnp.dot(K_trans, alpha_)
 
-            p1, p2, p3 = weibull_params.loc[tree].values
+            p1, p2, p3 = 0, 0, 0  # weibull_params.loc[tree].values
             weibull_pred = mean_pred + p1 * weibull_F(
                 X_test.ravel(), p2, p3
             )
 
-            return weibull_pred.block_until_ready()
+            weibull_pred.block_until_ready()
+
+        return
 
     if MODE == "sparse":
-        for tree in dendro.dendroNr.unique():
+        for tree in dendro.dendroNr.unique()[:N_TREES]:
             df_ = dendro.loc[dendro.dendroNr.eq(tree)]
 
             idx_train = jnp.sort(
@@ -173,20 +176,45 @@ def f(MODE: str = "band", X_TEST_SIZE: int = 10000, X_TRAIN_SIZE: int = 1000,  #
             K_trans = cov_matrix(X_train, X_test, covariance_function)
             mean_pred = jnp.dot(K_trans, alpha_)
 
-            p1, p2, p3 = weibull_params.loc[tree].values
+            p1, p2, p3 = 0, 0, 0  # weibull_params.loc[tree].values
             weibull_pred = mean_pred + p1 * weibull_F(
                 X_test.ravel(), p2, p3
             )
 
-            return weibull_pred.block_until_ready()
+            weibull_pred.block_until_ready()
+
+        return
+
 
 import benchmark
 
-param_dicts = [{"MODE": "sparse", "WENDLAND_LIMIT" : 200}, {"MODE" : "jax", "WENDLAND_LIMIT" : 200}, {"MODE": "band", "WENDLAND_LIMIT" : 200}, {"MODE": "full", "WENDLAND_LIMIT" : None}]
+param_dicts = [
+                  {"WENDLAND_LIMIT": x, "MODE": "band", "X_TRAIN_SIZE": y}
+                  for x in
+                  [10, 20, 40, 60, 80, 100, 150, jnp.inf]
+                  for y in
+                  [1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 8783]
+              ] + \
+              [
+                  {"WENDLAND_LIMIT": x, "MODE": "sparse", "X_TRAIN_SIZE": y}
+                  for x in
+                  [10, 20, 40, 60, 80, 100, 150, jnp.inf]
+                  for y in
+                  [1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 8783]
+              ] + \
+              [{"WENDLAND_LIMIT": None, "MODE": "jax", "X_TRAIN_SIZE": y} for y in
+               [1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 8783]] + \
+              [{"WENDLAND_LIMIT": None, "MODE": "full", "X_TRAIN_SIZE": y} for y in
+               [1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 8783]]
+
+#param_dicts = [{"MODE" : s} for s in ["band", "sparse", "jax", "full"]]
+
+print(len(param_dicts), "Benchmarks")
+#print(*param_dicts, sep='\n')
 
 benchmark.benchmark_suite(
     lambda **kwargs: functools.partial(f, **kwargs),
     param_dicts,
     name=sys.argv[0],
-    target_total_secs=5,
+    target_total_secs=120,
 )
