@@ -1,4 +1,4 @@
-#*.csv
+data/17766_12_data.csv
 *.pdf
 
 # gitignore template for Jupyter Notebooks
