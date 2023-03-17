@@ -3,6 +3,7 @@
 
 import sys
 
+import jax.experimental.sparse
 import liesel_sparse
 import pandas as pd
 from jax.experimental import sparse
@@ -31,7 +32,7 @@ def weibull_F(x, lambda_, k_):
 def kernel(theta, x, y):
     # 37**2 * Matern(length_scale=3, length_scale_bounds=(2,16), nu = 2.5) + WhiteKernel(noise_level=.01, noise_level_bounds="fixed")
     return (
-            MaternKernel32(65.3 ** 2, 25, x, y) + ExpSineSquaredKernel(0.4 ** 2, 0.1, 48, x, y)
+            MaternKernel32(65.3 ** 2, 25, x, y) + ExpSineSquaredKernel(0.4 ** 2, 0.1, 1, x, y)
     ) * WendlandTapering(3, theta, x, y)
 
 
@@ -57,14 +58,23 @@ def inv_cov_chol_sparse(K, data_y, eps):
 
     # Solve Kα=y using the Cholesky decomposition.
     L_sp_idx = jnp.argwhere(jax.jit(liesel_sparse.symbolic_factorization)(K) > 0)
-    L = jax.jit(liesel_sparse.cholesky_sparse)(K, L_sp_idx).todense()
-    alpha = jax.jit(liesel_sparse.solve_sparse)(K, data_y)
+
+    return _solve_sparse(K, data_y, L_sp_idx)
+
+@jax.jit
+def _solve_sparse(K, data_y, L_sp_idx):
+    L = liesel_sparse.cholesky_sparse(K, L_sp_idx).todense()
+    alpha = jax.lax.linalg.triangular_solve(
+        L.T,
+        jax.lax.linalg.triangular_solve(L, data_y, left_side=True, lower=True),
+        left_side=True,
+    )
 
     return L, alpha
 
 
 
-def f(MODE: str = "band", X_TEST_SIZE: int = 10000, X_TRAIN_SIZE: int = 1000, N_TREES: int = 2,
+def f(MODE: str = "band", X_TEST_SIZE: int = 10000, X_TRAIN_SIZE: int = 1000, N_TREES: int = 1,
       WENDLAND_LIMIT: float = 8.0):
     X_test = jnp.linspace(0, dendro.DOY.max(), X_TEST_SIZE).reshape(-1, 1)
 
@@ -83,7 +93,7 @@ def f(MODE: str = "band", X_TEST_SIZE: int = 10000, X_TRAIN_SIZE: int = 1000, N_
             kernel_ = (
                     65.3 ** 2 * Matern(length_scale=25, length_scale_bounds=(2, 16 * 48), nu=2.5)
                     + WhiteKernel(noise_level=0.1, noise_level_bounds="fixed")
-                    + ConstantKernel(0.4 ** 2) * ExpSineSquared(0.1, 48, periodicity_bounds="fixed")
+                    + ConstantKernel(0.4 ** 2) * ExpSineSquared(0.1, 1, periodicity_bounds="fixed")
             )
             gp_model = gaussian_process.GaussianProcessRegressor(
                 kernel=kernel_,
@@ -188,33 +198,48 @@ def f(MODE: str = "band", X_TEST_SIZE: int = 10000, X_TRAIN_SIZE: int = 1000, N_
 
 import benchmark
 
-param_dicts = [
-                  {"WENDLAND_LIMIT": x, "MODE": "band", "X_TRAIN_SIZE": y}
-                  for x in
-                  [10, 20, 40, 60, 80, 100, 150, jnp.inf]
-                  for y in
-                  [1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 8783]
-              ] + \
-              [
-                  {"WENDLAND_LIMIT": x, "MODE": "sparse", "X_TRAIN_SIZE": y}
-                  for x in
-                  [10, 20, 40, 60, 80, 100, 150, jnp.inf]
-                  for y in
-                  [1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 8783]
-              ] + \
-              [{"WENDLAND_LIMIT": None, "MODE": "jax", "X_TRAIN_SIZE": y} for y in
-               [1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 8783]] + \
-              [{"WENDLAND_LIMIT": None, "MODE": "full", "X_TRAIN_SIZE": y} for y in
-               [1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 8783]]
+# f(MODE="sparse")
+# f(MODE="jax")
+# f(MODE="band")
+f(MODE="band", X_TRAIN_SIZE=8000, WENDLAND_LIMIT=10)
+print('----------')
 
-#param_dicts = [{"MODE" : s} for s in ["band", "sparse", "jax", "full"]]
+with jax.profiler.trace("/tmp/tensorboard"):
+    # Run the operations to be profiled
+    f(MODE="band", X_TRAIN_SIZE=8000, WENDLAND_LIMIT=10)
+    # f(MODE="jax")
+    # f(MODE="band")
+    # f(MODE="full")
 
-print(len(param_dicts), "Benchmarks")
-#print(*param_dicts, sep='\n')
+# param_dicts = [
+#                   {"WENDLAND_LIMIT": x, "MODE": "band", "X_TRAIN_SIZE": y}
+#                   for x in
+#                   [10, 20, 40, 60, 80, 100, 150]
+#                   for y in
+#                   [1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000]
+#                   if x * y <= 300000
+#               ] + \
+#               [
+#                   {"WENDLAND_LIMIT": x, "MODE": "sparse", "X_TRAIN_SIZE": y}
+#                   for x in
+#                   [10, 20, 40, 60, 80, 100, 150]
+#                   for y in
+#                   [1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000]
+#                   if x * y <= 300000
+#               ] + \
+#               [{"WENDLAND_LIMIT": None, "MODE": "jax", "X_TRAIN_SIZE": y} for y in
+#                [1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000]] + \
+#               [{"WENDLAND_LIMIT": None, "MODE": "full", "X_TRAIN_SIZE": y} for y in
+#                [1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000]]
 
-benchmark.benchmark_suite(
-    lambda **kwargs: functools.partial(f, **kwargs),
-    param_dicts,
-    name=sys.argv[0],
-    target_total_secs=120,
-)
+#param_dicts = [{"MODE" : "sparse", "X_TRAIN_SIZE": y, "WENDLAND_LIMIT" : 10} for y in [1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000]]
+#
+# print(len(param_dicts), "Benchmarks")
+# print(*param_dicts, sep='\n')
+#
+# benchmark.benchmark_suite(
+#     lambda **kwargs: functools.partial(f, **kwargs),
+#     param_dicts,
+#     name=sys.argv[0],
+#     target_total_secs=.1,
+# )
