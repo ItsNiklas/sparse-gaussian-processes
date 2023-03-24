@@ -3,6 +3,7 @@ absl_py
 jax[cpu]
 jaxlib
 jaxopt
+num2tex
 numpy
 optax
 pandas
