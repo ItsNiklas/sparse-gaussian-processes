@@ -11,3 +11,6 @@ pyarrow
 scikit_learn
 tabulate
 tqdm
+# Thesis plots
+matplotlib
+seaborn
