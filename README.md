@@ -37,7 +37,7 @@ A virtual environment is recommended. The required datasets are included in the 
 - Metz, J. and Ammer, C., Dendrometer data of trees, neighbor, 1 mip, 2012-2013, Dataset. Published. Version 12, DatasetId: 17766, 2018. Available: https://www.bexis.uni-jena.de/ddm/data/Showdata/17766.
 - Pieter, T. and Keeling, R., Trends in atmospheric carbon dioxide, National Oceanic and Atmospheric Administration/Global Monitoring Laboratory, Feb. 2023. Available: https://gml.noaa.gov/ccgg/trends/data.html.
 
-## Code examples
+## Code example
 ```python3
 def kernel_(s, l, x, y):
     return MaternKernel32(s, l, x, y) * WendlandTapering(3, 8, x, y)
