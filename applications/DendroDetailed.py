@@ -75,7 +75,7 @@ def _solve_sparse(K, data_y, L_sp_idx):
 
 
 def f(MODE: str = "band", X_TEST_SIZE: int = 10000, X_TRAIN_SIZE: int = 1000, N_TREES: int = 1,
-      WENDLAND_LIMIT: float = 8.0):
+      WENDLAND_LIMIT: float = 10.0):
     X_test = jnp.linspace(0, dendro.DOY.max(), X_TEST_SIZE).reshape(-1, 1)
 
     jaxkey = jax.random.PRNGKey(0)
@@ -201,45 +201,38 @@ import benchmark
 # f(MODE="sparse")
 # f(MODE="jax")
 # f(MODE="band")
-f(MODE="band", X_TRAIN_SIZE=8000, WENDLAND_LIMIT=10)
+# f(MODE="band", X_TRAIN_SIZE=8000, WENDLAND_LIMIT=10)
 print('----------')
 
-with jax.profiler.trace("/tmp/tensorboard"):
+# with jax.profiler.trace("/tmp/tensorboard"):
     # Run the operations to be profiled
-    f(MODE="band", X_TRAIN_SIZE=8000, WENDLAND_LIMIT=10)
+    # f(MODE="band", X_TRAIN_SIZE=8000, WENDLAND_LIMIT=10)
     # f(MODE="jax")
     # f(MODE="band")
     # f(MODE="full")
 
-# param_dicts = [
-#                   {"WENDLAND_LIMIT": x, "MODE": "band", "X_TRAIN_SIZE": y}
-#                   for x in
-#                   [10, 20, 40, 60, 80, 100, 150]
-#                   for y in
-#                   [1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000]
-#                   if x * y <= 300000
-#               ] + \
-#               [
-#                   {"WENDLAND_LIMIT": x, "MODE": "sparse", "X_TRAIN_SIZE": y}
-#                   for x in
-#                   [10, 20, 40, 60, 80, 100, 150]
-#                   for y in
-#                   [1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000]
-#                   if x * y <= 300000
-#               ] + \
-#               [{"WENDLAND_LIMIT": None, "MODE": "jax", "X_TRAIN_SIZE": y} for y in
-#                [1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000]] + \
-#               [{"WENDLAND_LIMIT": None, "MODE": "full", "X_TRAIN_SIZE": y} for y in
-#                [1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000]]
+param_dicts = [
+                  {"MODE": "band", "X_TRAIN_SIZE": y}
+                  for y in
+                  [1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000]
+              ] + \
+              [
+                  {"MODE": "sparse", "X_TRAIN_SIZE": y}
+                  for y in
+                  [1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000]
+              ] + \
+              [{"MODE": "jax", "X_TRAIN_SIZE": y} for y in
+               [1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000]] + \
+              [{"MODE": "full", "X_TRAIN_SIZE": y} for y in
+               [1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000]]
 
-#param_dicts = [{"MODE" : "sparse", "X_TRAIN_SIZE": y, "WENDLAND_LIMIT" : 10} for y in [1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000]]
-#
-# print(len(param_dicts), "Benchmarks")
-# print(*param_dicts, sep='\n')
-#
-# benchmark.benchmark_suite(
-#     lambda **kwargs: functools.partial(f, **kwargs),
-#     param_dicts,
-#     name=sys.argv[0],
-#     target_total_secs=.1,
-# )
+
+print(len(param_dicts), "Benchmarks")
+print(*param_dicts, sep='\n')
+
+benchmark.benchmark_suite(
+    lambda **kwargs: functools.partial(f, **kwargs),
+    param_dicts,
+    name=sys.argv[0],
+    target_total_secs=1100,
+)
